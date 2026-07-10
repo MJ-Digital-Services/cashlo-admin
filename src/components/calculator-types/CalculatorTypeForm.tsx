@@ -7,7 +7,7 @@ import { Loader2 } from 'lucide-react';
 
 export interface CalculatorTypeFormData {
   name: string;
-  key: string;
+  key: 'emi' | 'sip' | 'swp' | 'fd' | 'rd';
   slug: string;
   icon: string;
   shortDescription: string;
@@ -33,11 +33,11 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-const KEY_OPTIONS = ['emi', 'sip', 'swp', 'fd', 'rd'];
+const KEY_OPTIONS: CalculatorTypeFormData['key'][] = ['emi', 'sip', 'swp', 'fd', 'rd'];
 
 export function CalculatorTypeForm({ calculatorType, onSubmit, isSubmitting, onCancel }: Props) {
   const [name, setName] = useState('');
-  const [key, setKey] = useState('emi');
+  const [key, setKey] = useState<CalculatorTypeFormData['key']>('emi');
   const [slug, setSlug] = useState('');
   const [icon, setIcon] = useState('');
   const [shortDescription, setShortDescription] = useState('');
@@ -73,7 +73,11 @@ export function CalculatorTypeForm({ calculatorType, onSubmit, isSubmitting, onC
             <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} placeholder="SIP Calculator" />
           </Field>
           <Field label="Key *">
-            <select className={inputCls} value={key} onChange={(e) => setKey(e.target.value)}>
+            <select
+              className={inputCls}
+              value={key}
+              onChange={(e) => setKey(e.target.value as CalculatorTypeFormData['key'])}
+            >
               {KEY_OPTIONS.map((k) => <option key={k} value={k}>{k.toUpperCase()}</option>)}
             </select>
           </Field>
