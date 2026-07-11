@@ -49,3 +49,38 @@ export interface User {
     isFeatured: boolean;
     updatedAt?: string;
   }
+
+  export interface Category {
+    _id: string;
+    name: string;
+    slug: string;
+    description?: string;
+    order: number;
+    isActive: boolean;
+  }
+  
+  export interface Faq {
+    question: string;
+    answer: string;
+  }
+  
+  export interface Blog {
+    _id: string;
+    title: string;
+    slug: string;
+    excerpt: string;
+    category: Category | string;
+    coverImage?: string | null;
+    tags: string[];
+    readTime?: string;
+    content: string;
+    relatedPosts: (Blog | string)[];
+    faqs: Faq[];
+    faqsTitle: string;
+    metaTitle: string;
+    metaDescription: string;
+    isPublished: boolean;
+    publishedAt?: string;
+    createdAt?: string;
+    updatedAt?: string;
+  }

@@ -4,12 +4,14 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Calculator, ListTree, LogOut } from 'lucide-react';
+import { LayoutDashboard, Calculator, ListTree, FileText, Tag, LogOut } from 'lucide-react';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/calculator-types', label: 'Calculator Types', icon: ListTree },
   { href: '/calculators', label: 'Calculators', icon: Calculator },
+  { href: '/blogs', label: 'Blogs', icon: FileText },
+  { href: '/categories', label: 'Categories', icon: Tag },
 ];
 
 export function Sidebar() {

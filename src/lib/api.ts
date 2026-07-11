@@ -1,5 +1,5 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
-import { Calculator, CalculatorType } from '@/types';
+import { Calculator, CalculatorType, Blog, Category } from '@/types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002/api/v1';
 
@@ -46,21 +46,114 @@ export const authApi = {
 
 export const calculatorTypesApi = {
   getAll: () => api.get('/calculators/types'),
-  create: (data: Partial<CalculatorType>) =>
-    api.post('/admin/calculators/types', data),
-  update: (id: string, data: Partial<CalculatorType>) =>
-    api.put(`/admin/calculators/types/${id}`, data),
+  create: (data: Partial<CalculatorType>) => api.post('/admin/calculators/types', data),
+  update: (id: string, data: Partial<CalculatorType>) => api.put(`/admin/calculators/types/${id}`, data),
 };
 
 export const calculatorsApi = {
   getAll: () => api.get('/admin/calculators'),
   getBySlug: (slug: string) => api.get(`/calculators/${slug}`),
-  create: (data: Partial<Calculator>) =>
-    api.post('/admin/calculators', data),
-  update: (id: string, data: Partial<Calculator>) =>
-    api.put(`/admin/calculators/${id}`, data),
+  create: (data: Partial<Calculator>) => api.post('/admin/calculators', data),
+  update: (id: string, data: Partial<Calculator>) => api.put(`/admin/calculators/${id}`, data),
+  delete: (id: string) => api.delete(`/admin/calculators/${id}`),
+};
+
+export const blogsApi = {
+  getAll: (params?: Record<string, unknown>) =>
+    api.get('/admin/blogs', { params }),
+
+  getById: (id: string) =>
+    api.get(`/admin/blogs/id/${id}`),
+
+  getPublished: () =>
+    api.get('/blogs', { params: { limit: 100 } }),
+
+  create: (data: Partial<Blog>) =>
+    api.post('/admin/blogs', data),
+
+  update: (id: string, data: Partial<Blog>) =>
+    api.patch(`/admin/blogs/${id}`, data),
+
   delete: (id: string) =>
-    api.delete(`/admin/calculators/${id}`),
+    api.delete(`/admin/blogs/${id}`),
+
+  uploadImage: (file: File, blogId: string, onProgress?: (pct: number) => void) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    formData.append('blogId', blogId);
+
+    return new Promise<{ imageUrl: string }>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `${API_URL}/admin/content/upload/blog-image`);
+
+      const token = localStorage.getItem('token');
+      if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+
+      if (onProgress) {
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+        };
+      }
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          const res = JSON.parse(xhr.responseText);
+          resolve({ imageUrl: res.data.imageUrl });
+        } else {
+          reject(new Error(JSON.parse(xhr.responseText)?.message || 'Upload failed'));
+        }
+      };
+
+      xhr.onerror = () => reject(new Error('Network error'));
+      xhr.send(formData);
+    });
+  },
+
+  uploadPdf: (file: File, blogId: string, onProgress?: (pct: number) => void) => {
+    const formData = new FormData();
+    formData.append('pdf', file);
+    formData.append('blogId', blogId);
+
+    return new Promise<{ pdfUrl: string }>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `${API_URL}/admin/content/upload/blog-pdf`);
+
+      const token = localStorage.getItem('token');
+      if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+
+      if (onProgress) {
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+        };
+      }
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          const res = JSON.parse(xhr.responseText);
+          resolve({ pdfUrl: res.data.pdfUrl });
+        } else {
+          reject(new Error(JSON.parse(xhr.responseText)?.message || 'Upload failed'));
+        }
+      };
+
+      xhr.onerror = () => reject(new Error('Network error'));
+      xhr.send(formData);
+    });
+  },
+};
+
+export const categoriesApi = {
+  getAll: (params?: { includeInactive?: boolean }) =>
+    api.get('/categories', { params }),
+
+  create: (data: Partial<Category>) =>
+    api.post('/categories', data),
+
+  update: (id: string, data: Partial<Category>) =>
+    api.patch(`/categories/${id}`, data),
+
+  delete: (id: string) =>
+    api.delete(`/categories/${id}`),
 };
 
 export default api;
