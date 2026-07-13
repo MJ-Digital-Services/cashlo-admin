@@ -4,14 +4,17 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Calculator, ListTree, FileText, Tag, LogOut } from 'lucide-react';
+import { LayoutDashboard, Calculator, ListTree, FileText, Tag, LogOut, Users } from 'lucide-react';
 
-const navItems = [
+type Role = 'admin' | 'editor' | 'sales';
+
+const navItems: { href: string; label: string; icon: typeof LayoutDashboard; roles?: Role[] }[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/calculator-types', label: 'Calculator Types', icon: ListTree },
-  { href: '/calculators', label: 'Calculators', icon: Calculator },
-  { href: '/blogs', label: 'Blogs', icon: FileText },
-  { href: '/categories', label: 'Categories', icon: Tag },
+  { href: '/calculator-types', label: 'Calculator Types', icon: ListTree, roles: ['admin', 'editor'] },
+  { href: '/calculators', label: 'Calculators', icon: Calculator, roles: ['admin', 'editor'] },
+  { href: '/blogs', label: 'Blogs', icon: FileText, roles: ['admin', 'editor'] },
+  { href: '/categories', label: 'Categories', icon: Tag, roles: ['admin', 'editor'] },
+  { href: '/leads', label: 'Distributor Leads', icon: Users, roles: ['admin', 'sales'] },
 ];
 
 export function Sidebar() {
@@ -23,6 +26,12 @@ export function Sidebar() {
     logout();
     router.replace('/login');
   };
+
+  // Items with no `roles` (e.g. Dashboard) are visible to everyone logged in.
+  // Everything else is only shown if the user's role is explicitly listed —
+  // this is purely UX (hiding links people can't use); the real enforcement
+  // is server-side via restrictTo() on the backend.
+  const visibleItems = navItems.filter((item) => !item.roles || (user && item.roles.includes(user.role as Role)));
 
   return (
     <aside className="fixed top-0 left-0 h-full w-64 bg-white border-r border-slate-200 flex flex-col z-50">
@@ -39,7 +48,7 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {navItems.map(({ href, label, icon: Icon }) => (
+        {visibleItems.map(({ href, label, icon: Icon }) => (
           <Link
             key={href}
             href={href}

@@ -156,4 +156,15 @@ export const categoriesApi = {
     api.delete(`/categories/${id}`),
 };
 
+export const distributorApi = {
+  getLeads: (params?: Record<string, unknown>) =>
+    api.get('/admin/distributor/leads', { params }),
+
+  getLead: (id: string) =>
+    api.get(`/admin/distributor/leads/${id}`),
+
+  updateCallStatus: (id: string, leadCallStatus: string) =>
+    api.patch(`/admin/distributor/leads/${id}/call-status`, { leadCallStatus }),
+};
+
 export default api;
