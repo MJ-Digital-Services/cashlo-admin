@@ -173,4 +173,18 @@ export const distributorApi = {
     api.patch(`/admin/distributor/leads/${id}/cancel`, {}),
 };
 
+export const usersApi = {
+  getAll: (params?: Record<string, unknown>) => api.get('/auth/users', { params }),
+
+  getById: (id: string) => api.get(`/auth/users/${id}`),
+
+  create: (data: { name: string; email: string; password: string; role: string }) =>
+    api.post('/auth/users', data),
+
+  update: (id: string, data: Partial<{ name: string; email: string; role: string; isActive: boolean; password: string }>) =>
+    api.patch(`/auth/users/${id}`, data),
+
+  delete: (id: string) => api.delete(`/auth/users/${id}`),
+};
+
 export default api;

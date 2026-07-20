@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Calculator, ListTree, FileText, Tag, LogOut, Users } from 'lucide-react';
+import { LayoutDashboard, Calculator, ListTree, FileText, Tag, LogOut, Users, UserCog } from 'lucide-react';
 
 type Role = 'admin' | 'editor' | 'sales';
 
@@ -15,6 +15,7 @@ const navItems: { href: string; label: string; icon: typeof LayoutDashboard; rol
   { href: '/blogs', label: 'Blogs', icon: FileText, roles: ['admin', 'editor'] },
   { href: '/categories', label: 'Categories', icon: Tag, roles: ['admin', 'editor'] },
   { href: '/leads', label: 'Distributor Leads', icon: Users, roles: ['admin', 'sales'] },
+  { href: '/users', label: 'Users', icon: UserCog, roles: ['admin'] },
 ];
 
 export function Sidebar() {

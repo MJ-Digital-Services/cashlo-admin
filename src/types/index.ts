@@ -3,6 +3,8 @@ export interface User {
   name: string;
   email: string;
   role: 'admin' | 'editor' | 'sales';
+  isActive: boolean;
+  createdAt?: string;
 }
 
 export interface CalculatorType {
@@ -91,7 +93,6 @@ export type DistributorLeadStatus =
   | 'otp_verified'
   | 'lock_acquired'
   | 'order_created'
-  | 'pending_manual_payment'
   | 'paid'
   | 'failed'
   | 'expired'
