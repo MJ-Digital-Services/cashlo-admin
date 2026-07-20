@@ -24,7 +24,7 @@ export function UserFormModal({ user, currentUserId, onClose, onSubmit, isSubmit
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState(user?.role || 'editor');
+  const [role, setRole] = useState<'admin' | 'editor' | 'sales'>(user?.role || 'editor');
   const [isActive, setIsActive] = useState(user?.isActive ?? true);
 
   useEffect(() => {
@@ -86,7 +86,7 @@ export function UserFormModal({ user, currentUserId, onClose, onSubmit, isSubmit
             <label className="block text-sm font-medium text-slate-700 mb-1">Role</label>
             <select
               value={role}
-              onChange={(e) => setRole(e.target.value)}
+              onChange={(e) => setRole(e.target.value as 'admin' | 'editor' | 'sales')}
               disabled={isSelf}
               className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#445df0] disabled:bg-slate-50 disabled:text-slate-400"
             >
