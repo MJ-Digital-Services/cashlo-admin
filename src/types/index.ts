@@ -91,12 +91,16 @@ export type DistributorLeadStatus =
   | 'otp_verified'
   | 'lock_acquired'
   | 'order_created'
+  | 'pending_manual_payment'
   | 'paid'
   | 'failed'
   | 'expired'
+  | 'cancelled'
   | 'lock_lost';
 
 export type LeadCallStatus = 'not_required' | 'pending_call' | 'called' | 'converted';
+
+export type ManualPaymentMode = 'cash' | 'qr' | 'bank_transfer' | 'other';
 
 export interface DistributorLead {
   _id: string;
@@ -118,6 +122,7 @@ export interface DistributorLead {
   otpVerified: boolean;
   otpVerifiedAt?: string;
   status: DistributorLeadStatus;
+  paymentMethod?: 'razorpay' | 'manual';
   razorpay?: {
     orderId?: string;
     paymentId?: string;
@@ -125,6 +130,13 @@ export interface DistributorLead {
     amount?: number;
     currency?: string;
     receipt?: string;
+  };
+  manualPayment?: {
+    mode?: ManualPaymentMode;
+    reference?: string;
+    notes?: string;
+    collectedBy?: string;
+    collectedAt?: string;
   };
   gst?: {
     baseAmount: number;

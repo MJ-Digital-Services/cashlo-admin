@@ -165,6 +165,12 @@ export const distributorApi = {
 
   updateCallStatus: (id: string, leadCallStatus: string) =>
     api.patch(`/admin/distributor/leads/${id}/call-status`, { leadCallStatus }),
+
+  markPaid: (id: string, data: { mode: string; reference?: string; notes?: string }) =>
+    api.patch(`/admin/distributor/leads/${id}/mark-paid`, data),
+
+  cancelLead: (id: string) =>
+    api.patch(`/admin/distributor/leads/${id}/cancel`, {}),
 };
 
 export default api;

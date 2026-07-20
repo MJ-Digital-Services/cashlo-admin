@@ -1,11 +1,16 @@
 'use client';
 
+import { useState } from 'react';
 import { DistributorLead } from '@/types';
+import { MarkPaidModal } from './MarkPaidModal';
 
 interface Props {
   leads: DistributorLead[];
   isLoading: boolean;
   onUpdateCallStatus: (id: string, leadCallStatus: string) => void;
+  onMarkPaid: (id: string, data: { mode: string; reference: string; notes: string }) => void;
+  onCancelLead: (id: string) => void;
+  isMarkPaidLoading?: boolean;
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -13,6 +18,7 @@ const STATUS_STYLES: Record<string, string> = {
   failed: 'bg-red-100 text-red-700',
   lock_lost: 'bg-orange-100 text-orange-700',
   expired: 'bg-slate-100 text-slate-600',
+  cancelled: 'bg-slate-100 text-slate-500',
   form_submitted: 'bg-slate-100 text-slate-600',
   otp_sent: 'bg-slate-100 text-slate-600',
   otp_verified: 'bg-blue-100 text-blue-700',
@@ -22,7 +28,18 @@ const STATUS_STYLES: Record<string, string> = {
 
 const CALL_STATUS_OPTIONS = ['not_required', 'pending_call', 'called', 'converted'];
 
-export function LeadsTable({ leads, isLoading, onUpdateCallStatus }: Props) {
+const AMOUNT_VISIBLE_STATUSES = ['lock_acquired', 'order_created', 'paid', 'lock_lost', 'cancelled'];
+
+export function LeadsTable({
+  leads,
+  isLoading,
+  onUpdateCallStatus,
+  onMarkPaid,
+  onCancelLead,
+  isMarkPaidLoading,
+}: Props) {
+  const [markPaidLeadId, setMarkPaidLeadId] = useState<string | null>(null);
+
   if (isLoading) {
     return (
       <div className="rounded-lg border border-slate-200 p-8 text-center text-slate-500 bg-white">
@@ -38,6 +55,8 @@ export function LeadsTable({ leads, isLoading, onUpdateCallStatus }: Props) {
     );
   }
 
+  const markPaidLead = leads.find((l) => l._id === markPaidLeadId) || null;
+
   return (
     <div className="rounded-lg border border-slate-200 overflow-hidden bg-white">
       <div className="overflow-x-auto">
@@ -51,6 +70,7 @@ export function LeadsTable({ leads, isLoading, onUpdateCallStatus }: Props) {
               <th className="text-left px-4 py-3 font-semibold text-slate-600">Amount</th>
               <th className="text-left px-4 py-3 font-semibold text-slate-600">Call Status</th>
               <th className="text-left px-4 py-3 font-semibold text-slate-600">Created</th>
+              <th className="text-left px-4 py-3 font-semibold text-slate-600">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -78,12 +98,20 @@ export function LeadsTable({ leads, isLoading, onUpdateCallStatus }: Props) {
                   >
                     {lead.status.replace(/_/g, ' ')}
                   </span>
+                  {lead.paymentMethod === 'manual' && (
+                    <span className="ml-1.5 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500">
+                      manual
+                    </span>
+                  )}
                   {lead.status === 'lock_lost' && lead.lostReason && (
                     <p className="text-xs text-orange-600 mt-1 max-w-[180px]">{lead.lostReason}</p>
                   )}
+                  {lead.status === 'paid' && lead.manualPayment?.reference && (
+                    <p className="text-xs text-slate-400 mt-1">Ref: {lead.manualPayment.reference}</p>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-slate-700">
-                {['order_created', 'paid', 'lock_lost'].includes(lead.status) && lead.gst?.totalAmount
+                  {AMOUNT_VISIBLE_STATUSES.includes(lead.status) && lead.gst?.totalAmount
                     ? `₹${(lead.gst.totalAmount / 100).toLocaleString('en-IN')}`
                     : '—'}
                 </td>
@@ -107,11 +135,44 @@ export function LeadsTable({ leads, isLoading, onUpdateCallStatus }: Props) {
                     year: 'numeric',
                   })}
                 </td>
+                <td className="px-4 py-3">
+                  {((lead.status === 'lock_acquired' && lead.paymentMethod === 'manual') || lead.status === 'lock_lost') && (
+                      <div className="flex flex-col gap-1.5">
+                        <button
+                          onClick={() => setMarkPaidLeadId(lead._id)}
+                          className="px-2.5 py-1 text-xs font-medium bg-[#445df0] text-white rounded-lg hover:bg-[#3548d4] whitespace-nowrap"
+                        >
+                          Mark Paid
+                        </button>
+                        {lead.status === 'lock_acquired' && (
+                          <button
+                            onClick={() => onCancelLead(lead._id)}
+                            className="px-2.5 py-1 text-xs font-medium border border-slate-300 text-slate-600 rounded-lg hover:bg-slate-50 whitespace-nowrap"
+                          >
+                            Cancel
+                          </button>
+                        )}
+                      </div>
+                    )}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {markPaidLead && (
+        <MarkPaidModal
+          leadName={markPaidLead.name}
+          pincode={markPaidLead.pincode}
+          isSubmitting={!!isMarkPaidLoading}
+          onClose={() => setMarkPaidLeadId(null)}
+          onSubmit={(data) => {
+            onMarkPaid(markPaidLead._id, data);
+            setMarkPaidLeadId(null);
+          }}
+        />
+      )}
     </div>
   );
 }
