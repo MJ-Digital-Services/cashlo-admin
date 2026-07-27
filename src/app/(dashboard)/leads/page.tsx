@@ -33,6 +33,7 @@ const PAYMENT_METHOD_OPTIONS = [
   { value: '', label: 'All Payment Methods' },
   { value: 'manual', label: 'Manual' },
   { value: 'razorpay', label: 'Razorpay' },
+  { value: 'qr_self', label: 'QR (Self-submitted)' },
 ];
 
 interface LeadsResponse {
@@ -93,6 +94,29 @@ export default function LeadsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       toast.success('Lead cancelled, pincode released');
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const approveUtrMutation = useMutation({
+    mutationFn: (id: string) => distributorApi.approveUtr(id),
+    onSuccess: (res: any) => {
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      const lockLost = res?.data?.data?.lockLost;
+      if (lockLost) {
+        toast.warning('UTR approved, but the pincode was already taken — arrange a refund.');
+      } else {
+        toast.success('UTR approved and pincode confirmed');
+      }
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const rejectUtrMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) => distributorApi.rejectUtr(id, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      toast.success('UTR rejected, lead moved to call queue');
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -168,7 +192,10 @@ export default function LeadsPage() {
         onUpdateCallStatus={(id, newStatus) => callStatusMutation.mutate({ id, leadCallStatus: newStatus })}
         onMarkPaid={(id, data) => markPaidMutation.mutate({ id, data })}
         onCancelLead={(id) => cancelMutation.mutate(id)}
+        onApproveUtr={(id) => approveUtrMutation.mutate(id)}
+        onRejectUtr={(id, reason) => rejectUtrMutation.mutate({ id, reason })}
         isMarkPaidLoading={markPaidMutation.isPending}
+        isApproveRejectLoading={approveUtrMutation.isPending || rejectUtrMutation.isPending}
       />
 
       {pagination && pagination.pages > 1 && (

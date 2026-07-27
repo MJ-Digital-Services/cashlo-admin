@@ -103,6 +103,8 @@ export type LeadCallStatus = 'not_required' | 'pending_call' | 'called' | 'conve
 
 export type ManualPaymentMode = 'cash' | 'qr' | 'bank_transfer' | 'other';
 
+export type QrReviewStatus = 'pending' | 'approved' | 'rejected';
+
 export interface DistributorLead {
   _id: string;
   name: string;
@@ -123,7 +125,7 @@ export interface DistributorLead {
   otpVerified: boolean;
   otpVerifiedAt?: string;
   status: DistributorLeadStatus;
-  paymentMethod?: 'razorpay' | 'manual';
+  paymentMethod?: 'razorpay' | 'manual' | 'qr_self';
   razorpay?: {
     orderId?: string;
     paymentId?: string;
@@ -138,6 +140,14 @@ export interface DistributorLead {
     notes?: string;
     collectedBy?: string;
     collectedAt?: string;
+  };
+  qrPayment?: {
+    utr?: string;
+    submittedAt?: string;
+    reviewStatus?: QrReviewStatus;
+    rejectionReason?: string;
+    reviewedBy?: string;
+    reviewedAt?: string;
   };
   gst?: {
     baseAmount: number;

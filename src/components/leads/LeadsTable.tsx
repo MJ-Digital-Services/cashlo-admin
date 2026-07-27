@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { DistributorLead } from '@/types';
 import { MarkPaidModal } from './MarkPaidModal';
+import { ApproveRejectUtrModal } from './ApproveRejectUtrModal';
 
 interface Props {
   leads: DistributorLead[];
@@ -10,7 +11,10 @@ interface Props {
   onUpdateCallStatus: (id: string, leadCallStatus: string) => void;
   onMarkPaid: (id: string, data: { mode: string; reference: string; notes: string }) => void;
   onCancelLead: (id: string) => void;
+  onApproveUtr: (id: string) => void;
+  onRejectUtr: (id: string, reason: string) => void;
   isMarkPaidLoading?: boolean;
+  isApproveRejectLoading?: boolean;
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -36,9 +40,13 @@ export function LeadsTable({
   onUpdateCallStatus,
   onMarkPaid,
   onCancelLead,
+  onApproveUtr,
+  onRejectUtr,
   isMarkPaidLoading,
+  isApproveRejectLoading,
 }: Props) {
   const [markPaidLeadId, setMarkPaidLeadId] = useState<string | null>(null);
+  const [reviewUtrLeadId, setReviewUtrLeadId] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -56,6 +64,7 @@ export function LeadsTable({
   }
 
   const markPaidLead = leads.find((l) => l._id === markPaidLeadId) || null;
+  const reviewUtrLead = leads.find((l) => l._id === reviewUtrLeadId) || null;
 
   return (
     <div className="rounded-lg border border-slate-200 overflow-hidden bg-white">
@@ -109,6 +118,16 @@ export function LeadsTable({
                   {lead.status === 'paid' && lead.manualPayment?.reference && (
                     <p className="text-xs text-slate-400 mt-1">Ref: {lead.manualPayment.reference}</p>
                   )}
+                  {lead.paymentMethod === 'qr_self' && lead.qrPayment?.reviewStatus === 'pending' && (
+                    <p className="text-xs font-mono text-amber-700 mt-1">
+                      UTR: {lead.qrPayment.utr}
+                    </p>
+                  )}
+                  {lead.paymentMethod === 'qr_self' && lead.qrPayment?.reviewStatus === 'rejected' && (
+                    <p className="text-xs text-red-600 mt-1 max-w-[180px]">
+                      Rejected: {lead.qrPayment.rejectionReason}
+                    </p>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-slate-700">
                   {AMOUNT_VISIBLE_STATUSES.includes(lead.status) && lead.gst?.totalAmount
@@ -136,6 +155,14 @@ export function LeadsTable({
                   })}
                 </td>
                 <td className="px-4 py-3">
+                  {lead.paymentMethod === 'qr_self' && lead.qrPayment?.reviewStatus === 'pending' && (
+                    <button
+                      onClick={() => setReviewUtrLeadId(lead._id)}
+                      className="px-2.5 py-1 text-xs font-medium bg-amber-500 text-white rounded-lg hover:bg-amber-600 whitespace-nowrap"
+                    >
+                      Review UTR
+                    </button>
+                  )}
                   {((lead.status === 'lock_acquired' && lead.paymentMethod === 'manual') || lead.status === 'lock_lost') && (
                       <div className="flex flex-col gap-1.5">
                         <button
@@ -170,6 +197,25 @@ export function LeadsTable({
           onSubmit={(data) => {
             onMarkPaid(markPaidLead._id, data);
             setMarkPaidLeadId(null);
+          }}
+        />
+      )}
+
+      {reviewUtrLead && (
+        <ApproveRejectUtrModal
+          leadName={reviewUtrLead.name}
+          pincode={reviewUtrLead.pincode}
+          utr={reviewUtrLead.qrPayment?.utr || ''}
+          submittedAt={reviewUtrLead.qrPayment?.submittedAt}
+          isSubmitting={!!isApproveRejectLoading}
+          onClose={() => setReviewUtrLeadId(null)}
+          onApprove={() => {
+            onApproveUtr(reviewUtrLead._id);
+            setReviewUtrLeadId(null);
+          }}
+          onReject={(reason) => {
+            onRejectUtr(reviewUtrLead._id, reason);
+            setReviewUtrLeadId(null);
           }}
         />
       )}

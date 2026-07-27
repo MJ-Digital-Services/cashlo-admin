@@ -171,6 +171,12 @@ export const distributorApi = {
 
   cancelLead: (id: string) =>
     api.patch(`/admin/distributor/leads/${id}/cancel`, {}),
+
+  approveUtr: (id: string) =>
+    api.patch(`/admin/distributor/leads/${id}/approve-utr`, {}),
+
+  rejectUtr: (id: string, reason: string) =>
+    api.patch(`/admin/distributor/leads/${id}/reject-utr`, { reason }),
 };
 
 export const usersApi = {
