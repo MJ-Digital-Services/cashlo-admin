@@ -41,6 +41,14 @@ interface LeadsResponse {
   pagination: { page: number; limit: number; total: number; pages: number };
 }
 
+const getTodayString = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export default function LeadsPage() {
   const queryClient = useQueryClient();
   const [status, setStatus] = useState('');
@@ -48,8 +56,8 @@ export default function LeadsPage() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [startDate, setStartDate] = useState(getTodayString());
+  const [endDate, setEndDate] = useState(getTodayString());
 
   const { data, isLoading } = useQuery({
     queryKey: ['leads', { status, leadCallStatus, paymentMethod, search, startDate, endDate, page }],
