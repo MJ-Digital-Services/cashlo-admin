@@ -48,9 +48,11 @@ export default function LeadsPage() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   const { data, isLoading } = useQuery({
-    queryKey: ['leads', { status, leadCallStatus, paymentMethod, search, page }],
+    queryKey: ['leads', { status, leadCallStatus, paymentMethod, search, startDate, endDate, page }],
     queryFn: async () =>
       (
         await distributorApi.getLeads({
@@ -58,6 +60,8 @@ export default function LeadsPage() {
           leadCallStatus: leadCallStatus || undefined,
           paymentMethod: paymentMethod || undefined,
           search: search || undefined,
+          startDate: startDate || undefined,
+          endDate: endDate || undefined,
           page,
           limit: 20,
         })
@@ -184,6 +188,28 @@ export default function LeadsPage() {
             </option>
           ))}
         </select>
+        <div className="flex items-center gap-2 px-3 py-2 text-sm border border-slate-300 rounded-lg focus-within:ring-2 focus-within:ring-[#445df0]">
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => {
+              setStartDate(e.target.value);
+              setPage(1);
+            }}
+            className="outline-none bg-transparent"
+          />
+          <span className="text-slate-400">to</span>
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => {
+              setEndDate(e.target.value);
+              setPage(1);
+            }}
+            min={startDate || undefined}
+            className="outline-none bg-transparent"
+          />
+        </div>
       </div>
 
       <LeadsTable
