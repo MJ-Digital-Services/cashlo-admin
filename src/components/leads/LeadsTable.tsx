@@ -13,11 +13,15 @@ interface Props {
   onCancelLead: (id: string) => void;
   onApproveUtr: (id: string) => void;
   onRejectUtr: (id: string, reason: string) => void;
+  onApproveFinalUtr: (id: string) => void;
+  onRejectFinalUtr: (id: string, reason: string) => void;
   isMarkPaidLoading?: boolean;
   isApproveRejectLoading?: boolean;
+  isApproveRejectFinalLoading?: boolean;
 }
 
 const STATUS_STYLES: Record<string, string> = {
+  activated: 'bg-emerald-100 text-emerald-700',
   paid: 'bg-green-100 text-green-700',
   failed: 'bg-red-100 text-red-700',
   lock_lost: 'bg-orange-100 text-orange-700',
@@ -42,11 +46,15 @@ export function LeadsTable({
   onCancelLead,
   onApproveUtr,
   onRejectUtr,
+  onApproveFinalUtr,
+  onRejectFinalUtr,
   isMarkPaidLoading,
   isApproveRejectLoading,
+  isApproveRejectFinalLoading,
 }: Props) {
   const [markPaidLeadId, setMarkPaidLeadId] = useState<string | null>(null);
   const [reviewUtrLeadId, setReviewUtrLeadId] = useState<string | null>(null);
+  const [reviewFinalUtrLeadId, setReviewFinalUtrLeadId] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -65,6 +73,10 @@ export function LeadsTable({
 
   const markPaidLead = leads.find((l) => l._id === markPaidLeadId) || null;
   const reviewUtrLead = leads.find((l) => l._id === reviewUtrLeadId) || null;
+  const reviewFinalUtrLead = leads.find((l) => l._id === reviewFinalUtrLeadId) || null;
+
+  const pendingFinalPayment = (lead: DistributorLead) =>
+    lead.payments?.find((p) => p.stage === 'final' && p.status === 'pending' && p.method === 'qr_self');
 
   return (
     <div className="rounded-lg border border-slate-200 overflow-hidden bg-white">
@@ -163,6 +175,14 @@ export function LeadsTable({
                       Review UTR
                     </button>
                   )}
+                  {lead.status === 'paid' && pendingFinalPayment(lead) && (
+                    <button
+                      onClick={() => setReviewFinalUtrLeadId(lead._id)}
+                      className="px-2.5 py-1 text-xs font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 whitespace-nowrap"
+                    >
+                      Review Final Payment
+                    </button>
+                  )}
                   {((lead.status === 'lock_acquired' && lead.paymentMethod === 'manual') || lead.status === 'lock_lost') && (
                       <div className="flex flex-col gap-1.5">
                         <button
@@ -201,7 +221,7 @@ export function LeadsTable({
         />
       )}
 
-      {reviewUtrLead && (
+{reviewUtrLead && (
         <ApproveRejectUtrModal
           leadName={reviewUtrLead.name}
           pincode={reviewUtrLead.pincode}
@@ -216,6 +236,25 @@ export function LeadsTable({
           onReject={(reason) => {
             onRejectUtr(reviewUtrLead._id, reason);
             setReviewUtrLeadId(null);
+          }}
+        />
+      )}
+
+      {reviewFinalUtrLead && (
+        <ApproveRejectUtrModal
+          leadName={reviewFinalUtrLead.name}
+          pincode={reviewFinalUtrLead.pincode}
+          utr={pendingFinalPayment(reviewFinalUtrLead)?.utr || ''}
+          submittedAt={pendingFinalPayment(reviewFinalUtrLead)?.createdAt}
+          isSubmitting={!!isApproveRejectFinalLoading}
+          onClose={() => setReviewFinalUtrLeadId(null)}
+          onApprove={() => {
+            onApproveFinalUtr(reviewFinalUtrLead._id);
+            setReviewFinalUtrLeadId(null);
+          }}
+          onReject={(reason) => {
+            onRejectFinalUtr(reviewFinalUtrLead._id, reason);
+            setReviewFinalUtrLeadId(null);
           }}
         />
       )}

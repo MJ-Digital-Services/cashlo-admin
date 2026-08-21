@@ -97,7 +97,28 @@ export type DistributorLeadStatus =
   | 'failed'
   | 'expired'
   | 'cancelled'
-  | 'lock_lost';
+  | 'lock_lost'
+  | 'activated';
+
+export type PaymentStage = 'booking' | 'final';
+export type PaymentMethod = 'razorpay' | 'qr_self' | 'manual';
+export type PaymentEntryStatus = 'pending' | 'success' | 'failed';
+
+export interface DistributorPaymentEntry {
+  _id?: string;
+  stage: PaymentStage;
+  method: PaymentMethod;
+  amount: number;
+  status: PaymentEntryStatus;
+  orderId?: string;
+  paymentId?: string;
+  utr?: string;
+  collectedBy?: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  rejectionReason?: string;
+  createdAt?: string;
+}
 
 export type LeadCallStatus = 'not_required' | 'pending_call' | 'called' | 'converted';
 
@@ -156,6 +177,10 @@ export interface DistributorLead {
   };
   leadCallStatus: LeadCallStatus;
   lostReason: string;
+  totalDistributorFee?: number;
+  payments?: DistributorPaymentEntry[];
+  activatedBy?: string;
+  activatedAt?: string;
   createdAt: string;
   updatedAt: string;
 }

@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 const STATUS_OPTIONS = [
   { value: '', label: 'All Statuses' },
   { value: 'paid', label: 'Paid' },
+  { value: 'activated', label: 'Activated' },
   { value: 'failed', label: 'Failed' },
   { value: 'lock_lost', label: 'Lock Lost' },
   { value: 'expired', label: 'Expired' },
@@ -133,6 +134,24 @@ export default function LeadsPage() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const approveFinalUtrMutation = useMutation({
+    mutationFn: (id: string) => distributorApi.approveFinalUtr(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      toast.success('Final payment approved — PIN Code activated');
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const rejectFinalUtrMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) => distributorApi.rejectFinalUtr(id, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      toast.success('Final payment rejected — distributor can resubmit');
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   const leads = data?.data ?? [];
   const pagination = data?.pagination;
 
@@ -228,8 +247,11 @@ export default function LeadsPage() {
         onCancelLead={(id) => cancelMutation.mutate(id)}
         onApproveUtr={(id) => approveUtrMutation.mutate(id)}
         onRejectUtr={(id, reason) => rejectUtrMutation.mutate({ id, reason })}
+        onApproveFinalUtr={(id) => approveFinalUtrMutation.mutate(id)}
+        onRejectFinalUtr={(id, reason) => rejectFinalUtrMutation.mutate({ id, reason })}
         isMarkPaidLoading={markPaidMutation.isPending}
         isApproveRejectLoading={approveUtrMutation.isPending || rejectUtrMutation.isPending}
+        isApproveRejectFinalLoading={approveFinalUtrMutation.isPending || rejectFinalUtrMutation.isPending}
       />
 
       {pagination && pagination.pages > 1 && (

@@ -177,6 +177,12 @@ export const distributorApi = {
 
   rejectUtr: (id: string, reason: string) =>
     api.patch(`/admin/distributor/leads/${id}/reject-utr`, { reason }),
+
+  approveFinalUtr: (id: string) =>
+    api.patch(`/admin/distributor/leads/${id}/approve-final-utr`, {}),
+
+  rejectFinalUtr: (id: string, reason: string) =>
+    api.patch(`/admin/distributor/leads/${id}/reject-final-utr`, { reason }),
 };
 
 export const usersApi = {
