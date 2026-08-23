@@ -130,6 +130,11 @@ export function LeadsTable({
                   {lead.status === 'paid' && lead.manualPayment?.reference && (
                     <p className="text-xs text-slate-400 mt-1">Ref: {lead.manualPayment.reference}</p>
                   )}
+                  {lead.status === 'paid' && pendingFinalPayment(lead) && (
+                    <p className="text-xs font-mono text-emerald-700 mt-1">
+                      Final UTR: {pendingFinalPayment(lead)?.utr}
+                    </p>
+                  )}
                   {lead.paymentMethod === 'qr_self' && lead.qrPayment?.reviewStatus === 'pending' && (
                     <p className="text-xs font-mono text-amber-700 mt-1">
                       UTR: {lead.qrPayment.utr}
@@ -142,9 +147,23 @@ export function LeadsTable({
                   )}
                 </td>
                 <td className="px-4 py-3 text-slate-700">
-                  {AMOUNT_VISIBLE_STATUSES.includes(lead.status) && lead.gst?.totalAmount
-                    ? `₹${(lead.gst.totalAmount / 100).toLocaleString('en-IN')}`
-                    : '—'}
+                  {(() => {
+                    const finalPending = pendingFinalPayment(lead);
+                    if (finalPending) {
+                      return (
+                        <div>
+                          <p className="font-medium text-emerald-700">
+                            ₹{(finalPending.amount / 100).toLocaleString('en-IN')}
+                          </p>
+                          <p className="text-xs text-slate-400">final payment pending</p>
+                        </div>
+                      );
+                    }
+                    if (AMOUNT_VISIBLE_STATUSES.includes(lead.status) && lead.gst?.totalAmount) {
+                      return `₹${(lead.gst.totalAmount / 100).toLocaleString('en-IN')}`;
+                    }
+                    return '—';
+                  })()}
                 </td>
                 <td className="px-4 py-3">
                   <select
