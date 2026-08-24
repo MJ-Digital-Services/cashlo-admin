@@ -90,7 +90,7 @@ export function LeadsTable({
               <th className="text-left px-4 py-3 font-semibold text-slate-600">Status</th>
               <th className="text-left px-4 py-3 font-semibold text-slate-600">Amount</th>
               <th className="text-left px-4 py-3 font-semibold text-slate-600">Call Status</th>
-              <th className="text-left px-4 py-3 font-semibold text-slate-600">Created</th>
+              <th className="text-left px-4 py-3 font-semibold text-slate-600">Updated</th>
               <th className="text-left px-4 py-3 font-semibold text-slate-600">Actions</th>
             </tr>
           </thead>
@@ -179,7 +179,7 @@ export function LeadsTable({
                   </select>
                 </td>
                 <td className="px-4 py-3 text-slate-500 text-xs">
-                  {new Date(lead.createdAt).toLocaleDateString('en-IN', {
+                  {new Date(lead.updatedAt).toLocaleDateString('en-IN', {
                     day: '2-digit',
                     month: 'short',
                     year: 'numeric',

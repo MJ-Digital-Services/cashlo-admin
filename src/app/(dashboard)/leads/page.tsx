@@ -59,9 +59,10 @@ export default function LeadsPage() {
   const [paymentMethod, setPaymentMethod] = useState('');
   const [startDate, setStartDate] = useState(getTodayString());
   const [endDate, setEndDate] = useState(getTodayString());
+  const [pendingFinalReview, setPendingFinalReview] = useState(false);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['leads', { status, leadCallStatus, paymentMethod, search, startDate, endDate, page }],
+    queryKey: ['leads', { status, leadCallStatus, paymentMethod, search, startDate, endDate, page, pendingFinalReview }],
     queryFn: async () =>
       (
         await distributorApi.getLeads({
@@ -69,8 +70,9 @@ export default function LeadsPage() {
           leadCallStatus: leadCallStatus || undefined,
           paymentMethod: paymentMethod || undefined,
           search: search || undefined,
-          startDate: startDate || undefined,
-          endDate: endDate || undefined,
+          startDate: pendingFinalReview ? undefined : startDate || undefined,
+          endDate: pendingFinalReview ? undefined : endDate || undefined,
+          pendingFinalReview: pendingFinalReview || undefined,
           page,
           limit: 20,
         })
@@ -216,14 +218,15 @@ export default function LeadsPage() {
           ))}
         </select>
         <div className="flex items-center gap-2 px-3 py-2 text-sm border border-slate-300 rounded-lg focus-within:ring-2 focus-within:ring-[#445df0]">
-          <input
+        <input
             type="date"
             value={startDate}
             onChange={(e) => {
               setStartDate(e.target.value);
               setPage(1);
             }}
-            className="outline-none bg-transparent"
+            disabled={pendingFinalReview}
+            className="outline-none bg-transparent disabled:opacity-40"
           />
           <span className="text-slate-400">to</span>
           <input
@@ -234,9 +237,23 @@ export default function LeadsPage() {
               setPage(1);
             }}
             min={startDate || undefined}
-            className="outline-none bg-transparent"
+            disabled={pendingFinalReview}
+            className="outline-none bg-transparent disabled:opacity-40"
           />
         </div>
+
+        <label className="flex items-center gap-2 px-3 py-2 text-sm border border-emerald-300 bg-emerald-50 rounded-lg cursor-pointer">
+          <input
+            type="checkbox"
+            checked={pendingFinalReview}
+            onChange={(e) => {
+              setPendingFinalReview(e.target.checked);
+              setPage(1);
+            }}
+            className="accent-emerald-600"
+          />
+          <span className="text-emerald-700 font-medium">Pending Final Review</span>
+        </label>
       </div>
 
       <LeadsTable
