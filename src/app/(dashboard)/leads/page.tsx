@@ -60,9 +60,10 @@ export default function LeadsPage() {
   const [startDate, setStartDate] = useState(getTodayString());
   const [endDate, setEndDate] = useState(getTodayString());
   const [pendingFinalReview, setPendingFinalReview] = useState(false);
+  const [pendingBookingReview, setPendingBookingReview] = useState(false);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['leads', { status, leadCallStatus, paymentMethod, search, startDate, endDate, page, pendingFinalReview }],
+    queryKey: ['leads', { status, leadCallStatus, paymentMethod, search, startDate, endDate, page, pendingFinalReview, pendingBookingReview }],
     queryFn: async () =>
       (
         await distributorApi.getLeads({
@@ -70,9 +71,10 @@ export default function LeadsPage() {
           leadCallStatus: leadCallStatus || undefined,
           paymentMethod: paymentMethod || undefined,
           search: search || undefined,
-          startDate: pendingFinalReview ? undefined : startDate || undefined,
-          endDate: pendingFinalReview ? undefined : endDate || undefined,
+          startDate: (pendingFinalReview || pendingBookingReview) ? undefined : startDate || undefined,
+          endDate: (pendingFinalReview || pendingBookingReview) ? undefined : endDate || undefined,
           pendingFinalReview: pendingFinalReview || undefined,
+          pendingBookingReview: pendingBookingReview || undefined,
           page,
           limit: 20,
         })
@@ -225,7 +227,7 @@ export default function LeadsPage() {
               setStartDate(e.target.value);
               setPage(1);
             }}
-            disabled={pendingFinalReview}
+            disabled={pendingFinalReview || pendingBookingReview}
             className="outline-none bg-transparent disabled:opacity-40"
           />
           <span className="text-slate-400">to</span>
@@ -237,7 +239,7 @@ export default function LeadsPage() {
               setPage(1);
             }}
             min={startDate || undefined}
-            disabled={pendingFinalReview}
+            disabled={pendingFinalReview || pendingBookingReview}
             className="outline-none bg-transparent disabled:opacity-40"
           />
         </div>
@@ -253,6 +255,19 @@ export default function LeadsPage() {
             className="accent-emerald-600"
           />
           <span className="text-emerald-700 font-medium">Pending Final Review</span>
+        </label>
+
+        <label className="flex items-center gap-2 px-3 py-2 text-sm border border-amber-300 bg-amber-50 rounded-lg cursor-pointer">
+          <input
+            type="checkbox"
+            checked={pendingBookingReview}
+            onChange={(e) => {
+              setPendingBookingReview(e.target.checked);
+              setPage(1);
+            }}
+            className="accent-amber-600"
+          />
+          <span className="text-amber-700 font-medium">Pending Booking Review</span>
         </label>
       </div>
 
