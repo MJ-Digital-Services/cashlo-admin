@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { distributorApi } from '@/lib/api';
 import { DistributorLead } from '@/types';
 import { LeadTimeline } from '@/components/leads/LeadTimeline';
+import { DistributorInfoCard, ConsentsCard, PaymentSummaryCard } from '@/components/leads/LeadInfoCards';
 
 export default function LeadDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -38,8 +39,13 @@ export default function LeadDetailPage() {
 
       <div className="mb-6">
         <LeadTimeline lead={data} />
-      </div>
-      {/* Info sections go here — Step 4 */}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <DistributorInfoCard lead={data} />
+            <ConsentsCard lead={data} />
+            <PaymentSummaryCard lead={data} />
+        </div>
     </div>
   );
 }

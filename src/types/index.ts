@@ -142,6 +142,7 @@ export interface DistributorLead {
     terms: boolean;
     kyc: boolean;
     genuineMerchants: boolean;
+    policyViolation: boolean;
   };
   otpVerified: boolean;
   otpVerifiedAt?: string;
@@ -177,6 +178,8 @@ export interface DistributorLead {
   };
   leadCallStatus: LeadCallStatus;
   lostReason: string;
+  receiptUrl?: string;
+  activationReceiptUrl?: string;
   totalDistributorFee?: number;
   payments?: DistributorPaymentEntry[];
   activatedBy?: string;
