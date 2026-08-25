@@ -63,22 +63,28 @@ export function buildLeadTimeline(lead: DistributorLead): TimelineEvent[] {
         }
       
         if (p.status === 'success') {
-          events.push({
-            label: `${stageLabel} Confirmed`,
-            timestamp: p.reviewedAt || p.createdAt,
-            description: amount,
-            tone: 'success',
-          });
-        }
+            const timestamp = p.reviewedAt || p.createdAt;
+            if (timestamp) {
+              events.push({
+                label: `${stageLabel} Confirmed`,
+                timestamp,
+                description: amount,
+                tone: 'success',
+              });
+            }
+          }
       
-        if (p.status === 'failed') {
-          events.push({
-            label: `${stageLabel} Rejected`,
-            timestamp: p.reviewedAt || p.createdAt,
-            description: p.rejectionReason || amount,
-            tone: 'error',
-          });
-        }
+          if (p.status === 'failed') {
+            const timestamp = p.reviewedAt || p.createdAt;
+            if (timestamp) {
+              events.push({
+                label: `${stageLabel} Rejected`,
+                timestamp,
+                description: p.rejectionReason || amount,
+                tone: 'error',
+              });
+            }
+          }
       });
 
   if (lead.status === 'lock_lost') {
