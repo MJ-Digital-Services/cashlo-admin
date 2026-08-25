@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { DistributorLead } from '@/types';
 import { MarkPaidModal } from './MarkPaidModal';
 import { ApproveRejectUtrModal } from './ApproveRejectUtrModal';
+import Link from 'next/link';
 
 interface Props {
   leads: DistributorLead[];
@@ -98,7 +99,9 @@ export function LeadsTable({
             {leads.map((lead) => (
               <tr key={lead._id} className="hover:bg-slate-50 transition-colors">
                 <td className="px-4 py-3">
-                  <p className="font-medium text-slate-900">{lead.name}</p>
+                  <Link href={`/leads/${lead._id}`} className="font-medium text-[#445df0] hover:underline">
+                    {lead.name}
+                  </Link>
                   {lead.asmCode && <p className="text-xs text-slate-400 mt-0.5">ASM: {lead.asmCode}</p>}
                 </td>
                 <td className="px-4 py-3">
