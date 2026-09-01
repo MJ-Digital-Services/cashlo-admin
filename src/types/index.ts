@@ -133,6 +133,9 @@ export interface DistributorLead {
   email: string;
   asmCode: string;
   referralCode: string;
+  aadhaarAddress?: string;
+  shopName?: string;
+  shopAddress?: string;
   pincode: string;
   district: string;
   state: string;

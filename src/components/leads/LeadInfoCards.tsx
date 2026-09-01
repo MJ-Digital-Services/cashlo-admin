@@ -38,6 +38,27 @@ export function DistributorInfoCard({ lead }: { lead: DistributorLead }) {
             <dd className="text-slate-900">{lead.referralCode}</dd>
           </>
         )}
+
+        {lead.aadhaarAddress && (
+          <>
+            <dt className="text-slate-500">Aadhaar Address</dt>
+            <dd className="text-slate-900">{lead.aadhaarAddress}</dd>
+          </>
+        )}
+
+        {lead.shopName && (
+          <>
+            <dt className="text-slate-500">Shop Name</dt>
+            <dd className="text-slate-900">{lead.shopName}</dd>
+          </>
+        )}
+
+        {lead.shopAddress && (
+          <>
+            <dt className="text-slate-500">Shop Address</dt>
+            <dd className="text-slate-900">{lead.shopAddress}</dd>
+          </>
+        )}
       </dl>
     </div>
   );
