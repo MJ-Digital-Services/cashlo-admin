@@ -28,7 +28,7 @@ export default function LeadDetailPage() {
   return (
     <div className="p-6 sm:p-8">
       <button
-        onClick={() => router.push('/leads')}
+        onClick={() => router.back()}
         className="text-sm text-[#445df0] hover:underline mb-4"
       >
         ← Back to Leads

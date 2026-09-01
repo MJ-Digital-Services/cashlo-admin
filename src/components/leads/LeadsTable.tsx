@@ -9,6 +9,9 @@ import Link from 'next/link';
 interface Props {
   leads: DistributorLead[];
   isLoading: boolean;
+  sortBy: string;
+  sortOrder: 'asc' | 'desc';
+  onSort: (field: string) => void;
   onUpdateCallStatus: (id: string, leadCallStatus: string) => void;
   onMarkPaid: (id: string, data: { mode: string; reference: string; notes: string }) => void;
   onCancelLead: (id: string) => void;
@@ -39,9 +42,39 @@ const CALL_STATUS_OPTIONS = ['not_required', 'pending_call', 'called', 'converte
 
 const AMOUNT_VISIBLE_STATUSES = ['lock_acquired', 'order_created', 'paid', 'lock_lost', 'cancelled'];
 
+function SortableHeader({
+  label,
+  field,
+  sortBy,
+  sortOrder,
+  onSort,
+}: {
+  label: string;
+  field: string;
+  sortBy: string;
+  sortOrder: 'asc' | 'desc';
+  onSort: (field: string) => void;
+}) {
+  const active = sortBy === field;
+  return (
+    <th
+      onClick={() => onSort(field)}
+      className="text-left px-4 py-3 font-semibold text-slate-600 cursor-pointer select-none hover:text-slate-900"
+    >
+      <span className="inline-flex items-center gap-1">
+        {label}
+        <span className="text-slate-400">{active ? (sortOrder === 'asc' ? '↑' : '↓') : ''}</span>
+      </span>
+    </th>
+  );
+}
+
 export function LeadsTable({
   leads,
   isLoading,
+  sortBy,
+  sortOrder,
+  onSort,
   onUpdateCallStatus,
   onMarkPaid,
   onCancelLead,
@@ -85,13 +118,13 @@ export function LeadsTable({
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200">
-              <th className="text-left px-4 py-3 font-semibold text-slate-600">Name</th>
+              <SortableHeader label="Name" field="name" sortBy={sortBy} sortOrder={sortOrder} onSort={onSort} />
               <th className="text-left px-4 py-3 font-semibold text-slate-600">Contact</th>
-              <th className="text-left px-4 py-3 font-semibold text-slate-600">Pincode</th>
-              <th className="text-left px-4 py-3 font-semibold text-slate-600">Status</th>
+              <SortableHeader label="Pincode" field="pincode" sortBy={sortBy} sortOrder={sortOrder} onSort={onSort} />
+              <SortableHeader label="Status" field="status" sortBy={sortBy} sortOrder={sortOrder} onSort={onSort} />
               <th className="text-left px-4 py-3 font-semibold text-slate-600">Amount</th>
               <th className="text-left px-4 py-3 font-semibold text-slate-600">Call Status</th>
-              <th className="text-left px-4 py-3 font-semibold text-slate-600">Updated</th>
+              <SortableHeader label="Updated" field="updatedAt" sortBy={sortBy} sortOrder={sortOrder} onSort={onSort} />
               <th className="text-left px-4 py-3 font-semibold text-slate-600">Actions</th>
             </tr>
           </thead>

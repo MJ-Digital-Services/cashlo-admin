@@ -6,6 +6,8 @@ import { distributorApi } from '@/lib/api';
 import { DistributorLead } from '@/types';
 import { LeadsTable } from '@/components/leads/LeadsTable';
 import { toast } from 'sonner';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect } from 'react';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All Statuses' },
@@ -52,18 +54,41 @@ const getTodayString = () => {
 
 export default function LeadsPage() {
   const queryClient = useQueryClient();
-  const [status, setStatus] = useState('');
-  const [leadCallStatus, setLeadCallStatus] = useState('');
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
-  const [paymentMethod, setPaymentMethod] = useState('');
-  const [startDate, setStartDate] = useState(getTodayString());
-  const [endDate, setEndDate] = useState(getTodayString());
-  const [pendingFinalReview, setPendingFinalReview] = useState(false);
-  const [pendingBookingReview, setPendingBookingReview] = useState(false);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const [status, setStatus] = useState(() => searchParams.get('status') || '');
+  const [leadCallStatus, setLeadCallStatus] = useState(() => searchParams.get('leadCallStatus') || '');
+  const [search, setSearch] = useState(() => searchParams.get('search') || '');
+  const [page, setPage] = useState(() => Number(searchParams.get('page')) || 1);
+  const [limit, setLimit] = useState(() => Number(searchParams.get('limit')) || 20);
+  const [paymentMethod, setPaymentMethod] = useState(() => searchParams.get('paymentMethod') || '');
+  const [startDate, setStartDate] = useState(() => searchParams.get('startDate') || getTodayString());
+  const [endDate, setEndDate] = useState(() => searchParams.get('endDate') || getTodayString());
+  const [pendingFinalReview, setPendingFinalReview] = useState(() => searchParams.get('pendingFinalReview') === 'true');
+  const [pendingBookingReview, setPendingBookingReview] = useState(() => searchParams.get('pendingBookingReview') === 'true');
+  const [sortBy, setSortBy] = useState(() => searchParams.get('sortBy') || 'createdAt');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(() => (searchParams.get('sortOrder') === 'asc' ? 'asc' : 'desc'));
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (status) params.set('status', status);
+    if (leadCallStatus) params.set('leadCallStatus', leadCallStatus);
+    if (search) params.set('search', search);
+    if (page > 1) params.set('page', String(page));
+    if (limit !== 20) params.set('limit', String(limit));
+    if (paymentMethod) params.set('paymentMethod', paymentMethod);
+    if (startDate) params.set('startDate', startDate);
+    if (endDate) params.set('endDate', endDate);
+    if (pendingFinalReview) params.set('pendingFinalReview', 'true');
+    if (pendingBookingReview) params.set('pendingBookingReview', 'true');
+    if (sortBy !== 'createdAt') params.set('sortBy', sortBy);
+    if (sortOrder !== 'desc') params.set('sortOrder', sortOrder);
+    router.replace(`/leads?${params.toString()}`, { scroll: false });
+  }, [status, leadCallStatus, search, page, paymentMethod, startDate, endDate, pendingFinalReview, pendingBookingReview, limit, sortBy, sortOrder]);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['leads', { status, leadCallStatus, paymentMethod, search, startDate, endDate, page, pendingFinalReview, pendingBookingReview }],
+    queryKey: ['leads', { status, leadCallStatus, paymentMethod, search, startDate, endDate, page, limit, pendingFinalReview, pendingBookingReview, sortBy, sortOrder }],
     queryFn: async () =>
       (
         await distributorApi.getLeads({
@@ -76,10 +101,65 @@ export default function LeadsPage() {
           pendingFinalReview: pendingFinalReview || undefined,
           pendingBookingReview: pendingBookingReview || undefined,
           page,
-          limit: 20,
+          limit,
+          sortBy,
+          sortOrder,
         })
       ).data as LeadsResponse,
   });
+
+  function handleSort(field: string) {
+    if (sortBy === field) {
+      setSortOrder((o) => (o === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(field);
+      setSortOrder('asc');
+    }
+    setPage(1);
+  }
+
+  function handleClearFilters() {
+    setStatus('');
+    setLeadCallStatus('');
+    setSearch('');
+    setPaymentMethod('');
+    setStartDate(getTodayString());
+    setEndDate(getTodayString());
+    setPendingFinalReview(false);
+    setPendingBookingReview(false);
+    setSortBy('createdAt');
+    setSortOrder('desc');
+    setLimit(20);
+    setPage(1);
+  }
+
+  async function handleExport() {
+    try {
+      const res = await distributorApi.exportLeads({
+        status: status || undefined,
+        leadCallStatus: leadCallStatus || undefined,
+        paymentMethod: paymentMethod || undefined,
+        search: search || undefined,
+        startDate: (pendingFinalReview || pendingBookingReview) ? undefined : startDate || undefined,
+        endDate: (pendingFinalReview || pendingBookingReview) ? undefined : endDate || undefined,
+        pendingFinalReview: pendingFinalReview || undefined,
+        pendingBookingReview: pendingBookingReview || undefined,
+        sortBy,
+        sortOrder,
+      });
+      const blob = new Blob([res.data], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `distributor-leads-${Date.now()}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (e: any) {
+      toast.error(e.message || 'Export failed');
+    }
+  }
 
   const callStatusMutation = useMutation({
     mutationFn: ({ id, leadCallStatus }: { id: string; leadCallStatus: string }) =>
@@ -269,11 +349,42 @@ export default function LeadsPage() {
           />
           <span className="text-amber-700 font-medium">Pending Booking Review</span>
         </label>
+
+        <select
+          value={limit}
+          onChange={(e) => {
+            setLimit(Number(e.target.value));
+            setPage(1);
+          }}
+          className="px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#445df0]"
+        >
+          <option value={10}>10 rows</option>
+          <option value={20}>20 rows</option>
+          <option value={50}>50 rows</option>
+          <option value={100}>100 rows</option>
+        </select>
+
+        <button
+          onClick={handleClearFilters}
+          className="px-3 py-2 text-sm font-medium border border-slate-300 text-slate-600 rounded-lg hover:bg-slate-50"
+        >
+          Clear Filters
+        </button>
+
+        <button
+          onClick={handleExport}
+          className="px-3 py-2 text-sm font-medium bg-[#445df0] text-white rounded-lg hover:bg-[#3548d4]"
+        >
+          Export CSV
+        </button>
       </div>
 
       <LeadsTable
         leads={leads}
         isLoading={isLoading}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        onSort={handleSort}
         onUpdateCallStatus={(id, newStatus) => callStatusMutation.mutate({ id, leadCallStatus: newStatus })}
         onMarkPaid={(id, data) => markPaidMutation.mutate({ id, data })}
         onCancelLead={(id) => cancelMutation.mutate(id)}

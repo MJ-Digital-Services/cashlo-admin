@@ -160,6 +160,9 @@ export const distributorApi = {
   getLeads: (params?: Record<string, unknown>) =>
     api.get('/admin/distributor/leads', { params }),
 
+  exportLeads: (params?: Record<string, unknown>) =>
+    api.get('/admin/distributor/leads/export', { params, responseType: 'blob' }),
+
   getLead: (id: string) =>
     api.get(`/admin/distributor/leads/${id}`),
 
