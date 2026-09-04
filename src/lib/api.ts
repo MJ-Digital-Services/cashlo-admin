@@ -184,8 +184,8 @@ export const distributorApi = {
   approveFinalUtr: (id: string) =>
     api.patch(`/admin/distributor/leads/${id}/approve-final-utr`, {}),
 
-  updateIdCreated: (id: string, idCreated: boolean) =>
-    api.patch(`/admin/distributor/leads/${id}/id-created`, { idCreated }),
+  updateIdCreated: (id: string, idCreated: boolean, remark?: string) =>
+    api.patch(`/admin/distributor/leads/${id}/id-created`, { idCreated, remark }),
 
   rejectFinalUtr: (id: string, reason: string) =>
     api.patch(`/admin/distributor/leads/${id}/reject-final-utr`, { reason }),

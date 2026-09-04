@@ -189,6 +189,7 @@ export interface DistributorLead {
   activatedBy?: string;
   activatedAt?: string;
   idCreated?: boolean;
+  idCreatedRemark?: string;
   createdAt: string;
   updatedAt: string;
 }

@@ -242,8 +242,8 @@ export default function LeadsPage() {
   });
 
   const toggleIdCreatedMutation = useMutation({
-    mutationFn: ({ id, idCreated }: { id: string; idCreated: boolean }) =>
-      distributorApi.updateIdCreated(id, idCreated),
+    mutationFn: ({ id, idCreated, remark }: { id: string; idCreated: boolean; remark?: string }) =>
+      distributorApi.updateIdCreated(id, idCreated, remark),
     onSuccess: (_res, variables) => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       toast.success(variables.idCreated ? 'Marked as ID created' : 'Marked as ID not created');
@@ -420,7 +420,7 @@ export default function LeadsPage() {
         onRejectUtr={(id, reason) => rejectUtrMutation.mutate({ id, reason })}
         onApproveFinalUtr={(id) => approveFinalUtrMutation.mutate(id)}
         onRejectFinalUtr={(id, reason) => rejectFinalUtrMutation.mutate({ id, reason })}
-        onToggleIdCreated={(id, idCreated) => toggleIdCreatedMutation.mutate({ id, idCreated })}
+        onToggleIdCreated={(id, idCreated, remark) => toggleIdCreatedMutation.mutate({ id, idCreated, remark })}
         isMarkPaidLoading={markPaidMutation.isPending}
         isApproveRejectLoading={approveUtrMutation.isPending || rejectUtrMutation.isPending}
         isApproveRejectFinalLoading={approveFinalUtrMutation.isPending || rejectFinalUtrMutation.isPending}

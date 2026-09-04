@@ -19,7 +19,7 @@ interface Props {
   onRejectUtr: (id: string, reason: string) => void;
   onApproveFinalUtr: (id: string) => void;
   onRejectFinalUtr: (id: string, reason: string) => void;
-  onToggleIdCreated: (id: string, idCreated: boolean) => void;
+  onToggleIdCreated: (id: string, idCreated: boolean, remark?: string) => void;
   isMarkPaidLoading?: boolean;
   isApproveRejectLoading?: boolean;
   isApproveRejectFinalLoading?: boolean;
@@ -70,6 +70,84 @@ function SortableHeader({
   );
 }
 
+function IdCreatedConfirmModal({
+  leadName,
+  pincode,
+  onClose,
+  onConfirm,
+}: {
+  leadName: string;
+  pincode: string;
+  onClose: () => void;
+  onConfirm: (remark: string) => void;
+}) {
+  const [step, setStep] = useState<'remark' | 'confirm'>('remark');
+  const [remark, setRemark] = useState('');
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
+      <div className="bg-white rounded-lg p-5 w-full max-w-sm">
+        {step === 'remark' ? (
+          <>
+            <h3 className="text-sm font-semibold text-slate-900 mb-1">Add a remark</h3>
+            <p className="text-xs text-slate-500 mb-3">
+              {leadName} · Pincode {pincode}
+            </p>
+            <textarea
+              autoFocus
+              value={remark}
+              onChange={(e) => setRemark(e.target.value)}
+              rows={3}
+              placeholder="e.g. distributor ID / any reference note"
+              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#445df0] resize-none"
+            />
+            <div className="flex justify-end gap-2 mt-4">
+              <button
+                onClick={onClose}
+                className="px-3 py-1.5 text-xs font-medium border border-slate-300 text-slate-600 rounded-lg hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (!remark.trim()) return;
+                  setStep('confirm');
+                }}
+                disabled={!remark.trim()}
+                className="px-3 py-1.5 text-xs font-medium bg-[#445df0] text-white rounded-lg hover:bg-[#3548d4] disabled:opacity-40"
+              >
+                Continue
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <h3 className="text-sm font-semibold text-slate-900 mb-1">Are you sure?</h3>
+            <p className="text-xs text-slate-500 mb-3">
+              Have you created the distributor ID for {leadName} (Pincode: {pincode})? This
+              cannot be undone once confirmed.
+            </p>
+            <div className="flex justify-end gap-2 mt-4">
+              <button
+                onClick={() => setStep('remark')}
+                className="px-3 py-1.5 text-xs font-medium border border-slate-300 text-slate-600 rounded-lg hover:bg-slate-50"
+              >
+                Back
+              </button>
+              <button
+                onClick={() => onConfirm(remark.trim())}
+                className="px-3 py-1.5 text-xs font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
+              >
+                Yes, confirm
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function LeadsTable({
   leads,
   isLoading,
@@ -91,6 +169,7 @@ export function LeadsTable({
   const [markPaidLeadId, setMarkPaidLeadId] = useState<string | null>(null);
   const [reviewUtrLeadId, setReviewUtrLeadId] = useState<string | null>(null);
   const [reviewFinalUtrLeadId, setReviewFinalUtrLeadId] = useState<string | null>(null);
+  const [idCreatedRemarkLeadId, setIdCreatedRemarkLeadId] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -110,6 +189,7 @@ export function LeadsTable({
   const markPaidLead = leads.find((l) => l._id === markPaidLeadId) || null;
   const reviewUtrLead = leads.find((l) => l._id === reviewUtrLeadId) || null;
   const reviewFinalUtrLead = leads.find((l) => l._id === reviewFinalUtrLeadId) || null;
+  const idCreatedRemarkLead = leads.find((l) => l._id === idCreatedRemarkLeadId) || null;
 
   const pendingFinalPayment = (lead: DistributorLead) =>
     lead.payments?.find((p) => p.stage === 'final' && p.status === 'pending' && p.method === 'qr_self');
@@ -225,11 +305,7 @@ export function LeadsTable({
                       </span>
                     ) : (
                       <button
-                        onClick={() => {
-                          if (window.confirm(`Have you created the distributor ID for ${lead.name} (Pincode: ${lead.pincode})? This cannot be undone once confirmed.`)) {
-                            onToggleIdCreated(lead._id, true);
-                          }
-                        }}
+                        onClick={() => setIdCreatedRemarkLeadId(lead._id)}
                         className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-500 hover:bg-slate-200"
                       >
                         Not Created
@@ -335,6 +411,18 @@ export function LeadsTable({
           onReject={(reason) => {
             onRejectFinalUtr(reviewFinalUtrLead._id, reason);
             setReviewFinalUtrLeadId(null);
+          }}
+        />
+      )}
+
+{idCreatedRemarkLead && (
+        <IdCreatedConfirmModal
+          leadName={idCreatedRemarkLead.name}
+          pincode={idCreatedRemarkLead.pincode}
+          onClose={() => setIdCreatedRemarkLeadId(null)}
+          onConfirm={(remark) => {
+            onToggleIdCreated(idCreatedRemarkLead._id, true, remark);
+            setIdCreatedRemarkLeadId(null);
           }}
         />
       )}

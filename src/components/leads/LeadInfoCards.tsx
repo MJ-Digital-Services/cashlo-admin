@@ -66,6 +66,13 @@ export function DistributorInfoCard({ lead }: { lead: DistributorLead }) {
             <dd className="text-slate-900">{lead.shopAddress}</dd>
           </>
         )}
+
+        {lead.idCreated && lead.idCreatedRemark && (
+          <>
+            <dt className="text-slate-500">ID Created Remark</dt>
+            <dd className="text-slate-900">{lead.idCreatedRemark}</dd>
+          </>
+        )}
       </dl>
     </div>
   );
