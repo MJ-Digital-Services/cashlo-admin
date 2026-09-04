@@ -39,6 +39,13 @@ export function DistributorInfoCard({ lead }: { lead: DistributorLead }) {
           </>
         )}
 
+        {lead.panCard && (
+          <>
+            <dt className="text-slate-500">PAN Card</dt>
+            <dd className="text-slate-900 font-mono">{lead.panCard}</dd>
+          </>
+        )}
+
         {lead.aadhaarAddress && (
           <>
             <dt className="text-slate-500">Aadhaar Address</dt>

@@ -19,6 +19,7 @@ interface Props {
   onRejectUtr: (id: string, reason: string) => void;
   onApproveFinalUtr: (id: string) => void;
   onRejectFinalUtr: (id: string, reason: string) => void;
+  onToggleIdCreated: (id: string, idCreated: boolean) => void;
   isMarkPaidLoading?: boolean;
   isApproveRejectLoading?: boolean;
   isApproveRejectFinalLoading?: boolean;
@@ -82,6 +83,7 @@ export function LeadsTable({
   onRejectUtr,
   onApproveFinalUtr,
   onRejectFinalUtr,
+  onToggleIdCreated,
   isMarkPaidLoading,
   isApproveRejectLoading,
   isApproveRejectFinalLoading,
@@ -124,6 +126,7 @@ export function LeadsTable({
               <SortableHeader label="Status" field="status" sortBy={sortBy} sortOrder={sortOrder} onSort={onSort} />
               <th className="text-left px-4 py-3 font-semibold text-slate-600">Amount</th>
               <th className="text-left px-4 py-3 font-semibold text-slate-600">Call Status</th>
+              <th className="text-left px-4 py-3 font-semibold text-slate-600">ID Created</th>
               <SortableHeader label="Updated" field="updatedAt" sortBy={sortBy} sortOrder={sortOrder} onSort={onSort} />
               <th className="text-left px-4 py-3 font-semibold text-slate-600">Actions</th>
             </tr>
@@ -213,6 +216,28 @@ export function LeadsTable({
                       </option>
                     ))}
                   </select>
+                </td>
+                <td className="px-4 py-3">
+                  {lead.status === 'activated' ? (
+                    lead.idCreated ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+                        ✓ Created
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          if (window.confirm(`Have you created the distributor ID for ${lead.name} (Pincode: ${lead.pincode})? This cannot be undone once confirmed.`)) {
+                            onToggleIdCreated(lead._id, true);
+                          }
+                        }}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-500 hover:bg-slate-200"
+                      >
+                        Not Created
+                      </button>
+                    )
+                  ) : (
+                    <span className="text-slate-300 text-xs">—</span>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-slate-500 text-xs">
                   {new Date(lead.updatedAt).toLocaleDateString('en-IN', {

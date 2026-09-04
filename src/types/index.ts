@@ -134,6 +134,7 @@ export interface DistributorLead {
   asmCode: string;
   referralCode: string;
   aadhaarAddress?: string;
+  panCard?: string;
   shopName?: string;
   shopAddress?: string;
   pincode: string;
@@ -187,6 +188,7 @@ export interface DistributorLead {
   payments?: DistributorPaymentEntry[];
   activatedBy?: string;
   activatedAt?: string;
+  idCreated?: boolean;
   createdAt: string;
   updatedAt: string;
 }
