@@ -68,6 +68,7 @@ export default function LeadsPage() {
   const [pendingFinalReview, setPendingFinalReview] = useState(() => searchParams.get('pendingFinalReview') === 'true');
   const [pendingBookingReview, setPendingBookingReview] = useState(() => searchParams.get('pendingBookingReview') === 'true');
   const [pendingIdCreation, setPendingIdCreation] = useState(() => searchParams.get('pendingIdCreation') === 'true');
+  const [idCreated, setIdCreated] = useState(() => searchParams.get('idCreated') === 'true');
   const [sortBy, setSortBy] = useState(() => searchParams.get('sortBy') || 'createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(() => (searchParams.get('sortOrder') === 'asc' ? 'asc' : 'desc'));
 
@@ -84,13 +85,14 @@ export default function LeadsPage() {
     if (pendingFinalReview) params.set('pendingFinalReview', 'true');
     if (pendingBookingReview) params.set('pendingBookingReview', 'true');
     if (pendingIdCreation) params.set('pendingIdCreation', 'true');
+    if (idCreated) params.set('idCreated', 'true');
     if (sortBy !== 'createdAt') params.set('sortBy', sortBy);
     if (sortOrder !== 'desc') params.set('sortOrder', sortOrder);
     router.replace(`/leads?${params.toString()}`, { scroll: false });
-  }, [status, leadCallStatus, search, page, paymentMethod, startDate, endDate, pendingFinalReview, pendingBookingReview, pendingIdCreation, limit, sortBy, sortOrder]);
+  }, [status, leadCallStatus, search, page, paymentMethod, startDate, endDate, pendingFinalReview, pendingBookingReview, pendingIdCreation, idCreated, limit, sortBy, sortOrder]);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['leads', { status, leadCallStatus, paymentMethod, search, startDate, endDate, page, limit, pendingFinalReview, pendingBookingReview, pendingIdCreation, sortBy, sortOrder }],
+    queryKey: ['leads', { status, leadCallStatus, paymentMethod, search, startDate, endDate, page, limit, pendingFinalReview, pendingBookingReview, pendingIdCreation, idCreated, sortBy, sortOrder }],
     queryFn: async () =>
       (
         await distributorApi.getLeads({
@@ -98,11 +100,12 @@ export default function LeadsPage() {
           leadCallStatus: leadCallStatus || undefined,
           paymentMethod: paymentMethod || undefined,
           search: search || undefined,
-          startDate: (pendingFinalReview || pendingBookingReview) ? undefined : startDate || undefined,
-          endDate: (pendingFinalReview || pendingBookingReview) ? undefined : endDate || undefined,
+          startDate: (pendingFinalReview || pendingBookingReview || pendingIdCreation || idCreated) ? undefined : startDate || undefined,
+          endDate: (pendingFinalReview || pendingBookingReview || pendingIdCreation || idCreated) ? undefined : endDate || undefined,
           pendingFinalReview: pendingFinalReview || undefined,
           pendingBookingReview: pendingBookingReview || undefined,
           pendingIdCreation: pendingIdCreation || undefined,
+          idCreated: idCreated || undefined,
           page,
           limit,
           sortBy,
@@ -131,6 +134,7 @@ export default function LeadsPage() {
     setPendingFinalReview(false);
     setPendingBookingReview(false);
     setPendingIdCreation(false);
+    setIdCreated(false);
     setSortBy('createdAt');
     setSortOrder('desc');
     setLimit(20);
@@ -144,11 +148,12 @@ export default function LeadsPage() {
         leadCallStatus: leadCallStatus || undefined,
         paymentMethod: paymentMethod || undefined,
         search: search || undefined,
-        startDate: (pendingFinalReview || pendingBookingReview || pendingIdCreation) ? undefined : startDate || undefined,
-        endDate: (pendingFinalReview || pendingBookingReview || pendingIdCreation) ? undefined : endDate || undefined,
+        startDate: (pendingFinalReview || pendingBookingReview || pendingIdCreation || idCreated) ? undefined : startDate || undefined,
+        endDate: (pendingFinalReview || pendingBookingReview || pendingIdCreation || idCreated) ? undefined : endDate || undefined,
         pendingFinalReview: pendingFinalReview || undefined,
         pendingBookingReview: pendingBookingReview || undefined,
         pendingIdCreation: pendingIdCreation || undefined,
+        idCreated: idCreated || undefined,
         sortBy,
         sortOrder,
       });
@@ -322,7 +327,7 @@ export default function LeadsPage() {
               setStartDate(e.target.value);
               setPage(1);
             }}
-            disabled={pendingFinalReview || pendingBookingReview || pendingIdCreation}
+            disabled={pendingFinalReview || pendingBookingReview || pendingIdCreation || idCreated}
             className="outline-none bg-transparent disabled:opacity-40"
           />
           <span className="text-slate-400">to</span>
@@ -334,7 +339,7 @@ export default function LeadsPage() {
               setPage(1);
             }}
             min={startDate || undefined}
-            disabled={pendingFinalReview || pendingBookingReview || pendingIdCreation}
+            disabled={pendingFinalReview || pendingBookingReview || pendingIdCreation || idCreated}
             className="outline-none bg-transparent disabled:opacity-40"
           />
         </div>
@@ -376,6 +381,19 @@ export default function LeadsPage() {
             className="accent-indigo-600"
           />
           <span className="text-indigo-700 font-medium">Pending ID Creation</span>
+        </label>
+
+        <label className="flex items-center gap-2 px-3 py-2 text-sm border border-teal-300 bg-teal-50 rounded-lg cursor-pointer">
+          <input
+            type="checkbox"
+            checked={idCreated}
+            onChange={(e) => {
+              setIdCreated(e.target.checked);
+              setPage(1);
+            }}
+            className="accent-teal-600"
+          />
+          <span className="text-teal-700 font-medium">ID Created</span>
         </label>
 
         <select
