@@ -112,5 +112,14 @@ export function buildLeadTimeline(lead: DistributorLead): TimelineEvent[] {
     });
   }
 
+  if (lead.refund?.refundedAt) {
+    events.push({
+      label: 'Refund Processed',
+      timestamp: lead.refund.refundedAt,
+      description: `₹${(lead.refund.amount / 100).toLocaleString('en-IN')} refunded · UTR: ${lead.refund.utr}${lead.refund.remark ? ` · ${lead.refund.remark}` : ''}`,
+      tone: 'warning',
+    });
+  }
+
   return events.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 }

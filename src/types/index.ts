@@ -98,7 +98,8 @@ export type DistributorLeadStatus =
   | 'expired'
   | 'cancelled'
   | 'lock_lost'
-  | 'activated';
+  | 'activated'
+  | 'refunded';
 
 export type PaymentStage = 'booking' | 'final';
 export type PaymentMethod = 'razorpay' | 'qr_self' | 'manual';
@@ -190,6 +191,14 @@ export interface DistributorLead {
   activatedAt?: string;
   idCreated?: boolean;
   idCreatedRemark?: string;
+  refund?: {
+    utr: string;
+    remark: string;
+    amount: number;
+    previousStatus: string;
+    refundedBy?: string;
+    refundedAt: string;
+  };
   createdAt: string;
   updatedAt: string;
 }

@@ -13,6 +13,7 @@ const STATUS_OPTIONS = [
   { value: '', label: 'All Statuses' },
   { value: 'paid', label: 'Paid' },
   { value: 'activated', label: 'Activated' },
+  { value: 'refunded', label: 'Refunded' },
   { value: 'failed', label: 'Failed' },
   { value: 'lock_lost', label: 'Lock Lost' },
   { value: 'expired', label: 'Expired' },
@@ -69,6 +70,7 @@ export default function LeadsPage() {
   const [pendingBookingReview, setPendingBookingReview] = useState(() => searchParams.get('pendingBookingReview') === 'true');
   const [pendingIdCreation, setPendingIdCreation] = useState(() => searchParams.get('pendingIdCreation') === 'true');
   const [idCreated, setIdCreated] = useState(() => searchParams.get('idCreated') === 'true');
+  const [refunded, setRefunded] = useState(() => searchParams.get('refunded') === 'true');
   const [sortBy, setSortBy] = useState(() => searchParams.get('sortBy') || 'createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(() => (searchParams.get('sortOrder') === 'asc' ? 'asc' : 'desc'));
 
@@ -86,13 +88,14 @@ export default function LeadsPage() {
     if (pendingBookingReview) params.set('pendingBookingReview', 'true');
     if (pendingIdCreation) params.set('pendingIdCreation', 'true');
     if (idCreated) params.set('idCreated', 'true');
+    if (refunded) params.set('refunded', 'true');
     if (sortBy !== 'createdAt') params.set('sortBy', sortBy);
     if (sortOrder !== 'desc') params.set('sortOrder', sortOrder);
     router.replace(`/leads?${params.toString()}`, { scroll: false });
-  }, [status, leadCallStatus, search, page, paymentMethod, startDate, endDate, pendingFinalReview, pendingBookingReview, pendingIdCreation, idCreated, limit, sortBy, sortOrder]);
+  }, [status, leadCallStatus, search, page, paymentMethod, startDate, endDate, pendingFinalReview, pendingBookingReview, pendingIdCreation, idCreated, refunded, limit, sortBy, sortOrder]);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['leads', { status, leadCallStatus, paymentMethod, search, startDate, endDate, page, limit, pendingFinalReview, pendingBookingReview, pendingIdCreation, idCreated, sortBy, sortOrder }],
+    queryKey: ['leads', { status, leadCallStatus, paymentMethod, search, startDate, endDate, page, limit, pendingFinalReview, pendingBookingReview, pendingIdCreation, idCreated, refunded, sortBy, sortOrder }],
     queryFn: async () =>
       (
         await distributorApi.getLeads({
@@ -100,12 +103,13 @@ export default function LeadsPage() {
           leadCallStatus: leadCallStatus || undefined,
           paymentMethod: paymentMethod || undefined,
           search: search || undefined,
-          startDate: (pendingFinalReview || pendingBookingReview || pendingIdCreation || idCreated) ? undefined : startDate || undefined,
-          endDate: (pendingFinalReview || pendingBookingReview || pendingIdCreation || idCreated) ? undefined : endDate || undefined,
+          startDate: (pendingFinalReview || pendingBookingReview || pendingIdCreation || idCreated || refunded) ? undefined : startDate || undefined,
+          endDate: (pendingFinalReview || pendingBookingReview || pendingIdCreation || idCreated || refunded) ? undefined : endDate || undefined,
           pendingFinalReview: pendingFinalReview || undefined,
           pendingBookingReview: pendingBookingReview || undefined,
           pendingIdCreation: pendingIdCreation || undefined,
           idCreated: idCreated || undefined,
+          refunded: refunded || undefined,
           page,
           limit,
           sortBy,
@@ -135,6 +139,7 @@ export default function LeadsPage() {
     setPendingBookingReview(false);
     setPendingIdCreation(false);
     setIdCreated(false);
+    setRefunded(false);
     setSortBy('createdAt');
     setSortOrder('desc');
     setLimit(20);
@@ -148,12 +153,13 @@ export default function LeadsPage() {
         leadCallStatus: leadCallStatus || undefined,
         paymentMethod: paymentMethod || undefined,
         search: search || undefined,
-        startDate: (pendingFinalReview || pendingBookingReview || pendingIdCreation || idCreated) ? undefined : startDate || undefined,
-        endDate: (pendingFinalReview || pendingBookingReview || pendingIdCreation || idCreated) ? undefined : endDate || undefined,
+        startDate: (pendingFinalReview || pendingBookingReview || pendingIdCreation || idCreated || refunded) ? undefined : startDate || undefined,
+        endDate: (pendingFinalReview || pendingBookingReview || pendingIdCreation || idCreated || refunded) ? undefined : endDate || undefined,
         pendingFinalReview: pendingFinalReview || undefined,
         pendingBookingReview: pendingBookingReview || undefined,
         pendingIdCreation: pendingIdCreation || undefined,
         idCreated: idCreated || undefined,
+        refunded: refunded || undefined,
         sortBy,
         sortOrder,
       });
@@ -256,6 +262,16 @@ export default function LeadsPage() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const markRefundedMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: { utr: string; remark: string } }) =>
+      distributorApi.markRefunded(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      toast.success('Lead marked as refunded, pincode released');
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   const leads = data?.data ?? [];
   const pagination = data?.pagination;
 
@@ -327,7 +343,7 @@ export default function LeadsPage() {
               setStartDate(e.target.value);
               setPage(1);
             }}
-            disabled={pendingFinalReview || pendingBookingReview || pendingIdCreation || idCreated}
+            disabled={pendingFinalReview || pendingBookingReview || pendingIdCreation || idCreated || refunded}
             className="outline-none bg-transparent disabled:opacity-40"
           />
           <span className="text-slate-400">to</span>
@@ -339,7 +355,7 @@ export default function LeadsPage() {
               setPage(1);
             }}
             min={startDate || undefined}
-            disabled={pendingFinalReview || pendingBookingReview || pendingIdCreation || idCreated}
+            disabled={pendingFinalReview || pendingBookingReview || pendingIdCreation || idCreated || refunded}
             className="outline-none bg-transparent disabled:opacity-40"
           />
         </div>
@@ -396,6 +412,19 @@ export default function LeadsPage() {
           <span className="text-teal-700 font-medium">ID Created</span>
         </label>
 
+        <label className="flex items-center gap-2 px-3 py-2 text-sm border border-purple-300 bg-purple-50 rounded-lg cursor-pointer">
+          <input
+            type="checkbox"
+            checked={refunded}
+            onChange={(e) => {
+              setRefunded(e.target.checked);
+              setPage(1);
+            }}
+            className="accent-purple-600"
+          />
+          <span className="text-purple-700 font-medium">Refunded</span>
+        </label>
+
         <select
           value={limit}
           onChange={(e) => {
@@ -439,9 +468,11 @@ export default function LeadsPage() {
         onApproveFinalUtr={(id) => approveFinalUtrMutation.mutate(id)}
         onRejectFinalUtr={(id, reason) => rejectFinalUtrMutation.mutate({ id, reason })}
         onToggleIdCreated={(id, idCreated, remark) => toggleIdCreatedMutation.mutate({ id, idCreated, remark })}
+        onMarkRefunded={(id, data) => markRefundedMutation.mutate({ id, data })}
         isMarkPaidLoading={markPaidMutation.isPending}
         isApproveRejectLoading={approveUtrMutation.isPending || rejectUtrMutation.isPending}
         isApproveRejectFinalLoading={approveFinalUtrMutation.isPending || rejectFinalUtrMutation.isPending}
+        isMarkRefundedLoading={markRefundedMutation.isPending}
       />
 
       {pagination && pagination.pages > 1 && (

@@ -5,6 +5,7 @@ import { DistributorLead } from '@/types';
 import { MarkPaidModal } from './MarkPaidModal';
 import { ApproveRejectUtrModal } from './ApproveRejectUtrModal';
 import Link from 'next/link';
+import { MarkRefundedModal, isRefundEligible, computeRefundAmount } from './MarkRefundedModal';
 
 interface Props {
   leads: DistributorLead[];
@@ -20,6 +21,8 @@ interface Props {
   onApproveFinalUtr: (id: string) => void;
   onRejectFinalUtr: (id: string, reason: string) => void;
   onToggleIdCreated: (id: string, idCreated: boolean, remark?: string) => void;
+  onMarkRefunded: (id: string, data: { utr: string; remark: string }) => void;
+  isMarkRefundedLoading?: boolean;
   isMarkPaidLoading?: boolean;
   isApproveRejectLoading?: boolean;
   isApproveRejectFinalLoading?: boolean;
@@ -32,6 +35,7 @@ const STATUS_STYLES: Record<string, string> = {
   lock_lost: 'bg-orange-100 text-orange-700',
   expired: 'bg-slate-100 text-slate-600',
   cancelled: 'bg-slate-100 text-slate-500',
+  refunded: 'bg-purple-100 text-purple-700',
   form_submitted: 'bg-slate-100 text-slate-600',
   otp_sent: 'bg-slate-100 text-slate-600',
   otp_verified: 'bg-blue-100 text-blue-700',
@@ -162,14 +166,17 @@ export function LeadsTable({
   onApproveFinalUtr,
   onRejectFinalUtr,
   onToggleIdCreated,
+  onMarkRefunded,
   isMarkPaidLoading,
   isApproveRejectLoading,
   isApproveRejectFinalLoading,
+  isMarkRefundedLoading,
 }: Props) {
   const [markPaidLeadId, setMarkPaidLeadId] = useState<string | null>(null);
   const [reviewUtrLeadId, setReviewUtrLeadId] = useState<string | null>(null);
   const [reviewFinalUtrLeadId, setReviewFinalUtrLeadId] = useState<string | null>(null);
   const [idCreatedRemarkLeadId, setIdCreatedRemarkLeadId] = useState<string | null>(null);
+  const [markRefundedLeadId, setMarkRefundedLeadId] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -190,6 +197,7 @@ export function LeadsTable({
   const reviewUtrLead = leads.find((l) => l._id === reviewUtrLeadId) || null;
   const reviewFinalUtrLead = leads.find((l) => l._id === reviewFinalUtrLeadId) || null;
   const idCreatedRemarkLead = leads.find((l) => l._id === idCreatedRemarkLeadId) || null;
+  const markRefundedLead = leads.find((l) => l._id === markRefundedLeadId) || null;
 
   const pendingFinalPayment = (lead: DistributorLead) =>
     lead.payments?.find((p) => p.stage === 'final' && p.status === 'pending' && p.method === 'qr_self');
@@ -262,6 +270,11 @@ export function LeadsTable({
                   {lead.paymentMethod === 'qr_self' && lead.qrPayment?.reviewStatus === 'rejected' && (
                     <p className="text-xs text-red-600 mt-1 max-w-[180px]">
                       Rejected: {lead.qrPayment.rejectionReason}
+                    </p>
+                  )}
+                  {lead.status === 'refunded' && lead.refund && (
+                    <p className="text-xs text-purple-600 mt-1">
+                      Refunded ₹{(lead.refund.amount / 100).toLocaleString('en-IN')}
                     </p>
                   )}
                 </td>
@@ -357,6 +370,14 @@ export function LeadsTable({
                         )}
                       </div>
                     )}
+                    {isRefundEligible(lead) && (
+                    <button
+                      onClick={() => setMarkRefundedLeadId(lead._id)}
+                      className="mt-1.5 px-2.5 py-1 text-xs font-medium bg-purple-600 text-white rounded-lg hover:bg-purple-700 whitespace-nowrap"
+                    >
+                      Mark Refunded
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
@@ -423,6 +444,20 @@ export function LeadsTable({
           onConfirm={(remark) => {
             onToggleIdCreated(idCreatedRemarkLead._id, true, remark);
             setIdCreatedRemarkLeadId(null);
+          }}
+        />
+      )}
+
+{markRefundedLead && (
+        <MarkRefundedModal
+          leadName={markRefundedLead.name}
+          pincode={markRefundedLead.pincode}
+          refundAmount={computeRefundAmount(markRefundedLead)}
+          isSubmitting={!!isMarkRefundedLoading}
+          onClose={() => setMarkRefundedLeadId(null)}
+          onSubmit={(data) => {
+            onMarkRefunded(markRefundedLead._id, data);
+            setMarkRefundedLeadId(null);
           }}
         />
       )}

@@ -145,6 +145,14 @@ export function PaymentSummaryCard({ lead }: { lead: DistributorLead }) {
               <dd className={pending > 0 ? 'text-amber-700 font-medium' : 'text-slate-900'}>{fmt(pending)}</dd>
             </>
           )}
+          {lead.status === 'refunded' && lead.refund && (
+            <>
+              <dt className="text-slate-500">Refunded</dt>
+              <dd className="text-purple-700 font-medium">
+                ₹{(lead.refund.amount / 100).toLocaleString('en-IN')}
+              </dd>
+            </>
+          )}
         </dl>
   
         {(lead.activationReceiptUrl || lead.receiptUrl) && (
@@ -168,6 +176,7 @@ export function PaymentSummaryCard({ lead }: { lead: DistributorLead }) {
     lock_lost: 'bg-orange-100 text-orange-700',
     expired: 'bg-slate-100 text-slate-600',
     cancelled: 'bg-slate-100 text-slate-500',
+    refunded: 'bg-purple-100 text-purple-700',
     form_submitted: 'bg-slate-100 text-slate-600',
     otp_sent: 'bg-slate-100 text-slate-600',
     otp_verified: 'bg-blue-100 text-blue-700',
@@ -231,6 +240,13 @@ export function PaymentSummaryCard({ lead }: { lead: DistributorLead }) {
         {rejectedFinal?.rejectionReason && (
           <p className="text-xs text-red-700 bg-red-50 rounded-lg px-3 py-2 mt-2">
             Final Payment Rejected: {rejectedFinal.rejectionReason}
+          </p>
+        )}
+
+        {lead.status === 'refunded' && lead.refund && (
+          <p className="text-xs text-purple-700 bg-purple-50 rounded-lg px-3 py-2 mt-2">
+            Refunded ₹{(lead.refund.amount / 100).toLocaleString('en-IN')} · UTR: {lead.refund.utr}
+            {lead.refund.remark ? ` · ${lead.refund.remark}` : ''}
           </p>
         )}
       </div>
