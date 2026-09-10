@@ -32,10 +32,17 @@ export function DistributorInfoCard({ lead }: { lead: DistributorLead }) {
           </>
         )}
 
-        {lead.referralCode && (
+{lead.referralCode && (
           <>
             <dt className="text-slate-500">Referral Code</dt>
             <dd className="text-slate-900">{lead.referralCode}</dd>
+          </>
+        )}
+
+        {lead.finalReferralCode && (
+          <>
+            <dt className="text-slate-500">Final Referral Code</dt>
+            <dd className="text-slate-900">{lead.finalReferralCode}</dd>
           </>
         )}
 

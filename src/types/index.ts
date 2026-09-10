@@ -191,6 +191,7 @@ export interface DistributorLead {
   activatedAt?: string;
   idCreated?: boolean;
   idCreatedRemark?: string;
+  finalReferralCode?: string;
   refund?: {
     utr: string;
     remark: string;
