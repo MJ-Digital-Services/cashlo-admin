@@ -1,3 +1,6 @@
+'use client';
+
+import { useState } from 'react';
 import { DistributorLead } from '@/types';
 
 const CONSENT_LABELS: Record<string, string> = {
@@ -8,7 +11,35 @@ const CONSENT_LABELS: Record<string, string> = {
   policyViolation: 'Policy violation declaration',
 };
 
+function ImagePreviewModal({ url, onClose }: { url: string; onClose: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+      onClick={onClose}
+    >
+      <div className="relative max-h-[85vh] max-w-3xl" onClick={(e) => e.stopPropagation()}>
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute -top-9 right-0 flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+          aria-label="Close preview"
+        >
+          ✕
+        </button>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={url}
+          alt="Aadhaar preview"
+          className="max-h-[85vh] max-w-full rounded-lg object-contain shadow-2xl"
+        />
+      </div>
+    </div>
+  );
+}
+
 export function DistributorInfoCard({ lead }: { lead: DistributorLead }) {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
   return (
     <div className="bg-white border border-slate-200 rounded-lg p-5">
       <h2 className="text-sm font-semibold text-slate-900 mb-4">Distributor Details</h2>
@@ -81,6 +112,46 @@ export function DistributorInfoCard({ lead }: { lead: DistributorLead }) {
           </>
         )}
       </dl>
+
+      {(lead.aadhaarFrontUrl || lead.aadhaarBackUrl) && (
+        <div className="mt-4 pt-4 border-t border-slate-100">
+          <p className="text-slate-500 text-sm mb-2">Aadhaar Card</p>
+          <div className="grid grid-cols-2 gap-3 max-w-xs">
+            {([
+              ['front', lead.aadhaarFrontUrl],
+              ['back', lead.aadhaarBackUrl],
+            ] as const).map(([side, url]) =>
+              url ? (
+                <button
+                  key={side}
+                  type="button"
+                  onClick={() => setPreviewUrl(url)}
+                  className="group relative block aspect-[16/10] w-full overflow-hidden rounded-lg border border-slate-200"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={url}
+                    alt={`Aadhaar ${side}`}
+                    className="h-full w-full object-cover transition-opacity group-hover:opacity-80"
+                  />
+                  <span className="absolute bottom-1 right-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-medium capitalize text-white">
+                    {side}
+                  </span>
+                </button>
+              ) : (
+                <div
+                  key={side}
+                  className="flex aspect-[16/10] w-full items-center justify-center rounded-lg border border-dashed border-slate-200 text-[11px] text-slate-400 capitalize"
+                >
+                  {side} — not uploaded
+                </div>
+              )
+            )}
+          </div>
+        </div>
+      )}
+
+      {previewUrl && <ImagePreviewModal url={previewUrl} onClose={() => setPreviewUrl(null)} />}
     </div>
   );
 }

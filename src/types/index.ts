@@ -135,6 +135,8 @@ export interface DistributorLead {
   asmCode: string;
   referralCode: string;
   aadhaarAddress?: string;
+  aadhaarFrontUrl?: string;
+  aadhaarBackUrl?: string;
   panCard?: string;
   shopName?: string;
   shopAddress?: string;
