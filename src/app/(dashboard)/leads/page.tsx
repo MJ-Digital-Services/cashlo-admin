@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { distributorApi } from '@/lib/api';
 import { DistributorLead } from '@/types';
 import { LeadsTable } from '@/components/leads/LeadsTable';
+import type { MarkRefundedPayload } from '@/components/leads/MarkRefundedModal';
 import { toast } from 'sonner';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
@@ -263,7 +264,7 @@ export default function LeadsPage() {
   });
 
   const markRefundedMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: { utr: string; remark: string } }) =>
+    mutationFn: ({ id, data }: { id: string; data: MarkRefundedPayload }) =>
       distributorApi.markRefunded(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });

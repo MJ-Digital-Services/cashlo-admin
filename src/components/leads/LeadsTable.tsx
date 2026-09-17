@@ -5,7 +5,7 @@ import { DistributorLead } from '@/types';
 import { MarkPaidModal } from './MarkPaidModal';
 import { ApproveRejectUtrModal } from './ApproveRejectUtrModal';
 import Link from 'next/link';
-import { MarkRefundedModal, isRefundEligible, computeRefundAmount } from './MarkRefundedModal';
+import { MarkRefundedModal, isRefundEligible, computeRefundAmount, type MarkRefundedPayload } from './MarkRefundedModal';
 
 interface Props {
   leads: DistributorLead[];
@@ -21,7 +21,7 @@ interface Props {
   onApproveFinalUtr: (id: string) => void;
   onRejectFinalUtr: (id: string, reason: string) => void;
   onToggleIdCreated: (id: string, idCreated: boolean, remark?: string) => void;
-  onMarkRefunded: (id: string, data: { utr: string; remark: string }) => void;
+  onMarkRefunded: (id: string, data: MarkRefundedPayload) => void;
   isMarkRefundedLoading?: boolean;
   isMarkPaidLoading?: boolean;
   isApproveRejectLoading?: boolean;

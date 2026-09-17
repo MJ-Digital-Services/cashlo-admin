@@ -3,20 +3,35 @@
 import { useState } from 'react';
 import { DistributorLead } from '@/types';
 
+export type MarkRefundedPayload = {
+  method: 'bank_transfer' | 'wallet';
+  utr: string;
+  paymentInfo: string;
+  remark: string;
+};
+
 interface Props {
   leadName: string;
   pincode: string;
   refundAmount: number; // paise — computed from payments[], display only
   onClose: () => void;
-  onSubmit: (data: { utr: string; remark: string }) => void;
+  onSubmit: (data: MarkRefundedPayload) => void;
   isSubmitting: boolean;
 }
 
+// Matches the backend's REFUND_UTR_REGEX (distributorAdmin.controller.js) —
+// alphanumeric only, 6-22 chars. Wallet refunds skip this entirely.
+const UTR_REGEX = /^[A-Za-z0-9]{6,22}$/;
+
 export function MarkRefundedModal({ leadName, pincode, refundAmount, onClose, onSubmit, isSubmitting }: Props) {
+  const [isWalletRefund, setIsWalletRefund] = useState(false);
   const [utr, setUtr] = useState('');
+  const [paymentInfo, setPaymentInfo] = useState('');
   const [remark, setRemark] = useState('');
 
-  const canSubmit = utr.trim().length >= 6 && remark.trim().length > 0;
+  const canSubmit = isWalletRefund
+    ? paymentInfo.trim().length > 0 && remark.trim().length > 0
+    : UTR_REGEX.test(utr.trim()) && remark.trim().length > 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -41,19 +56,44 @@ export function MarkRefundedModal({ leadName, pincode, refundAmount, onClose, on
           be undone.
         </p>
 
+        <label className="mt-4 flex items-center gap-2 text-sm text-slate-700 select-none">
+          <input
+            type="checkbox"
+            checked={isWalletRefund}
+            onChange={(e) => setIsWalletRefund(e.target.checked)}
+            className="h-4 w-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500"
+          />
+          Wallet refunded (no UTR available)
+        </label>
+
         <div className="mt-4 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Refund UTR / Transaction Reference
-            </label>
-            <input
-              type="text"
-              value={utr}
-              onChange={(e) => setUtr(e.target.value)}
-              placeholder="e.g. UTR number of the refund transfer"
-              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#445df0]"
-            />
-          </div>
+          {isWalletRefund ? (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Payment Information
+              </label>
+              <input
+                type="text"
+                value={paymentInfo}
+                onChange={(e) => setPaymentInfo(e.target.value)}
+                placeholder="e.g. refunded to Cashlo wallet, no reference number"
+                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#445df0]"
+              />
+            </div>
+          ) : (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Refund UTR / Transaction Reference
+              </label>
+              <input
+                type="text"
+                value={utr}
+                onChange={(e) => setUtr(e.target.value)}
+                placeholder="e.g. UTR number of the refund transfer"
+                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#445df0]"
+              />
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Remark</label>
@@ -76,7 +116,14 @@ export function MarkRefundedModal({ leadName, pincode, refundAmount, onClose, on
             Cancel
           </button>
           <button
-            onClick={() => onSubmit({ utr: utr.trim(), remark: remark.trim() })}
+            onClick={() =>
+              onSubmit({
+                method: isWalletRefund ? 'wallet' : 'bank_transfer',
+                utr: isWalletRefund ? '' : utr.trim(),
+                paymentInfo: isWalletRefund ? paymentInfo.trim() : '',
+                remark: remark.trim(),
+              })
+            }
             disabled={isSubmitting || !canSubmit}
             className="px-4 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
           >

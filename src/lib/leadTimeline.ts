@@ -113,10 +113,14 @@ export function buildLeadTimeline(lead: DistributorLead): TimelineEvent[] {
   }
 
   if (lead.refund?.refundedAt) {
+    const referenceText =
+      lead.refund.method === 'wallet'
+        ? `Payment Info: ${lead.refund.paymentInfo}`
+        : `UTR: ${lead.refund.utr}`;
     events.push({
       label: 'Refund Processed',
       timestamp: lead.refund.refundedAt,
-      description: `₹${(lead.refund.amount / 100).toLocaleString('en-IN')} refunded · UTR: ${lead.refund.utr}${lead.refund.remark ? ` · ${lead.refund.remark}` : ''}`,
+      description: `₹${(lead.refund.amount / 100).toLocaleString('en-IN')} refunded · ${referenceText}${lead.refund.remark ? ` · ${lead.refund.remark}` : ''}`,
       tone: 'warning',
     });
   }

@@ -323,7 +323,10 @@ export function PaymentSummaryCard({ lead }: { lead: DistributorLead }) {
 
         {lead.status === 'refunded' && lead.refund && (
           <p className="text-xs text-purple-700 bg-purple-50 rounded-lg px-3 py-2 mt-2">
-            Refunded ₹{(lead.refund.amount / 100).toLocaleString('en-IN')} · UTR: {lead.refund.utr}
+            Refunded ₹{(lead.refund.amount / 100).toLocaleString('en-IN')} ·{' '}
+            {lead.refund.method === 'wallet'
+              ? `Wallet: ${lead.refund.paymentInfo}`
+              : `UTR: ${lead.refund.utr}`}
             {lead.refund.remark ? ` · ${lead.refund.remark}` : ''}
           </p>
         )}

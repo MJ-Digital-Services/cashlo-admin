@@ -190,7 +190,10 @@ export const distributorApi = {
   rejectFinalUtr: (id: string, reason: string) =>
     api.patch(`/admin/distributor/leads/${id}/reject-final-utr`, { reason }),
 
-  markRefunded: (id: string, data: { utr: string; remark: string }) =>
+  markRefunded: (
+    id: string,
+    data: { method: 'bank_transfer' | 'wallet'; utr: string; paymentInfo: string; remark: string }
+  ) =>
     api.patch(`/admin/distributor/leads/${id}/mark-refunded`, data),
 };
 

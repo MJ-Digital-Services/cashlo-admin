@@ -195,7 +195,9 @@ export interface DistributorLead {
   idCreatedRemark?: string;
   finalReferralCode?: string;
   refund?: {
-    utr: string;
+    method?: 'bank_transfer' | 'wallet';
+    utr?: string;
+    paymentInfo?: string;
     remark: string;
     amount: number;
     previousStatus: string;
