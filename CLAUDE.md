@@ -53,7 +53,13 @@ calculator types, categories, users, and the distributor leads pipeline.
   `cancel`, `updateCallStatus`, `exportLeads`.
 - Other dashboard sections (`blogs`, `calculators`, `calculator-types`,
   `categories`, `users`) are independent CRUD panels, unrelated to the
-  distributor flow.
+  distributor flow. **`blogs` is legacy** — blog content now lives in
+  `cashlo-cms` (a separate Payload CMS repo, `cms.cashlo.app`), and
+  `cashlo-final`'s public site no longer reads from this panel's backing
+  API (`cashlo-backend`'s `Blog` model). This tab is unretired only
+  because nobody's pulled it yet — don't build new blog features here,
+  and don't be surprised if edits made in this panel don't show up
+  anywhere on the live site.
 
 ## Working conventions
 
