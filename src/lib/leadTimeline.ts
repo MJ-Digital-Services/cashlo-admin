@@ -25,7 +25,10 @@ export function buildLeadTimeline(lead: DistributorLead): TimelineEvent[] {
     });
   }
 
-  if (lead.qrPayment?.submittedAt) {
+  // Legacy booking UTRs lived only on qrPayment. Skip them once the same
+  // payment also exists in the payments ledger, so it isn't listed twice.
+  const ledgerHasBooking = (lead.payments || []).some((p) => p.stage === 'booking');
+  if (lead.qrPayment?.submittedAt && !ledgerHasBooking) {
     events.push({
       label: 'UTR Submitted (Booking)',
       timestamp: lead.qrPayment.submittedAt,
@@ -45,7 +48,8 @@ export function buildLeadTimeline(lead: DistributorLead): TimelineEvent[] {
 
   (lead.payments || []).forEach((p) => {
         const amount = `₹${(p.amount / 100).toLocaleString('en-IN')}`;
-        const stageLabel = p.stage === 'final' ? 'Final Payment' : 'Booking Payment';
+        const stageLabel =
+          p.stage === 'final' ? 'Final Payment' : p.stage === 'full' ? 'Full Payment' : 'Booking Payment';
         const reviewedDiffers =
           p.reviewedAt &&
           p.createdAt &&

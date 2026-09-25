@@ -101,8 +101,13 @@ export type DistributorLeadStatus =
   | 'activated'
   | 'refunded';
 
-export type PaymentStage = 'booking' | 'final';
+export type PaymentStage = 'booking' | 'final' | 'full';
+// Only 'qr_self' is written now — the others exist on legacy records only.
 export type PaymentMethod = 'razorpay' | 'qr_self' | 'manual';
+
+// See cashlo-backend src/config/distributorFees.js. Missing on leads from
+// before plans existed → treat as 'booking'.
+export type DistributorPlan = 'booking' | 'full';
 export type PaymentEntryStatus = 'pending' | 'success' | 'failed';
 
 export interface DistributorPaymentEntry {
@@ -154,15 +159,9 @@ export interface DistributorLead {
   otpVerified: boolean;
   otpVerifiedAt?: string;
   status: DistributorLeadStatus;
-  paymentMethod?: 'razorpay' | 'manual' | 'qr_self';
-  razorpay?: {
-    orderId?: string;
-    paymentId?: string;
-    signature?: string;
-    amount?: number;
-    currency?: string;
-    receipt?: string;
-  };
+  plan?: DistributorPlan;
+  paymentMethod?: PaymentMethod;
+  // Legacy (read-only): pre-ledger offline/QR approvals.
   manualPayment?: {
     mode?: ManualPaymentMode;
     reference?: string;

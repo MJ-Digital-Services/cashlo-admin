@@ -34,11 +34,10 @@ const CALL_STATUS_OPTIONS = [
   { value: 'not_required', label: 'Not Required' },
 ];
 
-const PAYMENT_METHOD_OPTIONS = [
-  { value: '', label: 'All Payment Methods' },
-  { value: 'manual', label: 'Manual' },
-  { value: 'razorpay', label: 'Razorpay' },
-  { value: 'qr_self', label: 'QR (Self-submitted)' },
+const PLAN_OPTIONS = [
+  { value: '', label: 'All Plans' },
+  { value: 'booking', label: 'Booking (₹1,180 + ₹5,900)' },
+  { value: 'full', label: 'Full (₹6,490)' },
 ];
 
 interface LeadsResponse {
@@ -64,7 +63,7 @@ export default function LeadsPage() {
   const [search, setSearch] = useState(() => searchParams.get('search') || '');
   const [page, setPage] = useState(() => Number(searchParams.get('page')) || 1);
   const [limit, setLimit] = useState(() => Number(searchParams.get('limit')) || 20);
-  const [paymentMethod, setPaymentMethod] = useState(() => searchParams.get('paymentMethod') || '');
+  const [plan, setPlan] = useState(() => searchParams.get('plan') || '');
   const [startDate, setStartDate] = useState(() => searchParams.get('startDate') || getTodayString());
   const [endDate, setEndDate] = useState(() => searchParams.get('endDate') || getTodayString());
   const [pendingFinalReview, setPendingFinalReview] = useState(() => searchParams.get('pendingFinalReview') === 'true');
@@ -82,7 +81,7 @@ export default function LeadsPage() {
     if (search) params.set('search', search);
     if (page > 1) params.set('page', String(page));
     if (limit !== 20) params.set('limit', String(limit));
-    if (paymentMethod) params.set('paymentMethod', paymentMethod);
+    if (plan) params.set('plan', plan);
     if (startDate) params.set('startDate', startDate);
     if (endDate) params.set('endDate', endDate);
     if (pendingFinalReview) params.set('pendingFinalReview', 'true');
@@ -93,16 +92,16 @@ export default function LeadsPage() {
     if (sortBy !== 'createdAt') params.set('sortBy', sortBy);
     if (sortOrder !== 'desc') params.set('sortOrder', sortOrder);
     router.replace(`/leads?${params.toString()}`, { scroll: false });
-  }, [status, leadCallStatus, search, page, paymentMethod, startDate, endDate, pendingFinalReview, pendingBookingReview, pendingIdCreation, idCreated, refunded, limit, sortBy, sortOrder]);
+  }, [status, leadCallStatus, search, page, plan, startDate, endDate, pendingFinalReview, pendingBookingReview, pendingIdCreation, idCreated, refunded, limit, sortBy, sortOrder]);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['leads', { status, leadCallStatus, paymentMethod, search, startDate, endDate, page, limit, pendingFinalReview, pendingBookingReview, pendingIdCreation, idCreated, refunded, sortBy, sortOrder }],
+    queryKey: ['leads', { status, leadCallStatus, plan, search, startDate, endDate, page, limit, pendingFinalReview, pendingBookingReview, pendingIdCreation, idCreated, refunded, sortBy, sortOrder }],
     queryFn: async () =>
       (
         await distributorApi.getLeads({
           status: status || undefined,
           leadCallStatus: leadCallStatus || undefined,
-          paymentMethod: paymentMethod || undefined,
+          plan: plan || undefined,
           search: search || undefined,
           startDate: (pendingFinalReview || pendingBookingReview || pendingIdCreation || idCreated || refunded) ? undefined : startDate || undefined,
           endDate: (pendingFinalReview || pendingBookingReview || pendingIdCreation || idCreated || refunded) ? undefined : endDate || undefined,
@@ -133,7 +132,7 @@ export default function LeadsPage() {
     setStatus('');
     setLeadCallStatus('');
     setSearch('');
-    setPaymentMethod('');
+    setPlan('');
     setStartDate(getTodayString());
     setEndDate(getTodayString());
     setPendingFinalReview(false);
@@ -152,7 +151,7 @@ export default function LeadsPage() {
       const res = await distributorApi.exportLeads({
         status: status || undefined,
         leadCallStatus: leadCallStatus || undefined,
-        paymentMethod: paymentMethod || undefined,
+        plan: plan || undefined,
         search: search || undefined,
         startDate: (pendingFinalReview || pendingBookingReview || pendingIdCreation || idCreated || refunded) ? undefined : startDate || undefined,
         endDate: (pendingFinalReview || pendingBookingReview || pendingIdCreation || idCreated || refunded) ? undefined : endDate || undefined,
@@ -188,67 +187,24 @@ export default function LeadsPage() {
     onError: (e: any) => toast.error(e.message),
   });
 
-  const markPaidMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: { mode: string; reference: string; notes: string } }) =>
-      distributorApi.markPaid(id, data),
+  const approvePaymentMutation = useMutation({
+    mutationFn: (id: string) => distributorApi.approvePayment(id),
     onSuccess: (res: any) => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
-      const lockLost = res?.data?.data?.lockLost;
-      if (lockLost) {
-        toast.warning('Payment recorded, but the pincode was already taken — arrange a refund.');
-      } else {
-        toast.success('Payment recorded and pincode confirmed');
-      }
+      toast.success(res?.data?.message || 'Payment approved');
     },
     onError: (e: any) => toast.error(e.message),
   });
 
-  const cancelMutation = useMutation({
-    mutationFn: (id: string) => distributorApi.cancelLead(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['leads'] });
-      toast.success('Lead cancelled, pincode released');
-    },
-    onError: (e: any) => toast.error(e.message),
-  });
-
-  const approveUtrMutation = useMutation({
-    mutationFn: (id: string) => distributorApi.approveUtr(id),
+  const rejectPaymentMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) => distributorApi.rejectPayment(id, reason),
     onSuccess: (res: any) => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
-      const lockLost = res?.data?.data?.lockLost;
-      if (lockLost) {
-        toast.warning('UTR approved, but the pincode was already taken — arrange a refund.');
-      } else {
-        toast.success('UTR approved and pincode confirmed');
-      }
-    },
-    onError: (e: any) => toast.error(e.message),
-  });
-
-  const rejectUtrMutation = useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason: string }) => distributorApi.rejectUtr(id, reason),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['leads'] });
-      toast.success('UTR rejected, lead moved to call queue');
-    },
-    onError: (e: any) => toast.error(e.message),
-  });
-
-  const approveFinalUtrMutation = useMutation({
-    mutationFn: (id: string) => distributorApi.approveFinalUtr(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['leads'] });
-      toast.success('Final payment approved — PIN Code activated');
-    },
-    onError: (e: any) => toast.error(e.message),
-  });
-
-  const rejectFinalUtrMutation = useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason: string }) => distributorApi.rejectFinalUtr(id, reason),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['leads'] });
-      toast.success('Final payment rejected — distributor can resubmit');
+      toast.success(
+        res?.data?.data?.status === 'paid'
+          ? 'Final payment rejected — distributor can resubmit'
+          : 'Payment rejected — lead cancelled, PIN code released'
+      );
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -323,14 +279,14 @@ export default function LeadsPage() {
         </select>
 
         <select
-          value={paymentMethod}
+          value={plan}
           onChange={(e) => {
-            setPaymentMethod(e.target.value);
+            setPlan(e.target.value);
             setPage(1);
           }}
           className="px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#445df0]"
         >
-          {PAYMENT_METHOD_OPTIONS.map((o) => (
+          {PLAN_OPTIONS.map((o) => (
             <option key={o.value} value={o.value}>
               {o.label}
             </option>
@@ -384,7 +340,7 @@ export default function LeadsPage() {
             }}
             className="accent-amber-600"
           />
-          <span className="text-amber-700 font-medium">Pending Booking Review</span>
+          <span className="text-amber-700 font-medium">Pending Payment Review</span>
         </label>
 
         <label className="flex items-center gap-2 px-3 py-2 text-sm border border-indigo-300 bg-indigo-50 rounded-lg cursor-pointer">
@@ -462,17 +418,11 @@ export default function LeadsPage() {
         sortOrder={sortOrder}
         onSort={handleSort}
         onUpdateCallStatus={(id, newStatus) => callStatusMutation.mutate({ id, leadCallStatus: newStatus })}
-        onMarkPaid={(id, data) => markPaidMutation.mutate({ id, data })}
-        onCancelLead={(id) => cancelMutation.mutate(id)}
-        onApproveUtr={(id) => approveUtrMutation.mutate(id)}
-        onRejectUtr={(id, reason) => rejectUtrMutation.mutate({ id, reason })}
-        onApproveFinalUtr={(id) => approveFinalUtrMutation.mutate(id)}
-        onRejectFinalUtr={(id, reason) => rejectFinalUtrMutation.mutate({ id, reason })}
+        onApprovePayment={(id) => approvePaymentMutation.mutate(id)}
+        onRejectPayment={(id, reason) => rejectPaymentMutation.mutate({ id, reason })}
         onToggleIdCreated={(id, idCreated, remark) => toggleIdCreatedMutation.mutate({ id, idCreated, remark })}
         onMarkRefunded={(id, data) => markRefundedMutation.mutate({ id, data })}
-        isMarkPaidLoading={markPaidMutation.isPending}
-        isApproveRejectLoading={approveUtrMutation.isPending || rejectUtrMutation.isPending}
-        isApproveRejectFinalLoading={approveFinalUtrMutation.isPending || rejectFinalUtrMutation.isPending}
+        isReviewLoading={approvePaymentMutation.isPending || rejectPaymentMutation.isPending}
         isMarkRefundedLoading={markRefundedMutation.isPending}
       />
 

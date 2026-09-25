@@ -169,26 +169,17 @@ export const distributorApi = {
   updateCallStatus: (id: string, leadCallStatus: string) =>
     api.patch(`/admin/distributor/leads/${id}/call-status`, { leadCallStatus }),
 
-  markPaid: (id: string, data: { mode: string; reference?: string; notes?: string }) =>
-    api.patch(`/admin/distributor/leads/${id}/mark-paid`, data),
+  // Approve/reject the lead's single pending payment, whatever its stage
+  // (booking → paid; full or final → activated). See cashlo-backend
+  // src/utils/distributorPayments.js.
+  approvePayment: (id: string) =>
+    api.patch(`/admin/distributor/leads/${id}/approve-payment`, {}),
 
-  cancelLead: (id: string) =>
-    api.patch(`/admin/distributor/leads/${id}/cancel`, {}),
-
-  approveUtr: (id: string) =>
-    api.patch(`/admin/distributor/leads/${id}/approve-utr`, {}),
-
-  rejectUtr: (id: string, reason: string) =>
-    api.patch(`/admin/distributor/leads/${id}/reject-utr`, { reason }),
-
-  approveFinalUtr: (id: string) =>
-    api.patch(`/admin/distributor/leads/${id}/approve-final-utr`, {}),
+  rejectPayment: (id: string, reason: string) =>
+    api.patch(`/admin/distributor/leads/${id}/reject-payment`, { reason }),
 
   updateIdCreated: (id: string, idCreated: boolean, remark?: string) =>
     api.patch(`/admin/distributor/leads/${id}/id-created`, { idCreated, remark }),
-
-  rejectFinalUtr: (id: string, reason: string) =>
-    api.patch(`/admin/distributor/leads/${id}/reject-final-utr`, { reason }),
 
   markRefunded: (
     id: string,

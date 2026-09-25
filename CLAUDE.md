@@ -18,18 +18,30 @@ calculator types, categories, users, and the distributor leads pipeline.
 
 - `src/app/(dashboard)/leads/*` — leads list + detail pages. Filters mirror
   the backend's `DistributorLead` status enum and `buildLeadsFilter` query
-  params 1:1 (status, leadCallStatus, paymentMethod, date range,
-  `pendingFinalReview` / `pendingBookingReview` / `pendingIdCreation` /
-  `idCreated` / `refunded` quick filters).
+  params 1:1 (status, leadCallStatus, `plan` (booking/full), date range,
+  `pendingFinalReview` / `pendingBookingReview` (labelled "Pending Payment
+  Review" — every `lock_acquired` lead, booking **and** full plan) /
+  `pendingIdCreation` / `idCreated` / `refunded` quick filters).
 - `src/components/leads/*` — `LeadInfoCards`, `LeadTimeline`,
-  `ApproveRejectUtrModal`, `MarkPaidModal`, `MarkRefundedModal`.
+  `ApproveRejectUtrModal`, `MarkRefundedModal`. Payment review is **one**
+  action for every stage (2026-09-25): `LeadsTable`'s `pendingPayment(lead)`
+  finds the lead's single pending `payments[]` entry (or a legacy pending
+  `qrPayment`), and the "Review {stage} payment" button opens
+  `ApproveRejectUtrModal`, which shows the stage + **expected amount** so the
+  reviewer checks the amount, not just the UTR (a customer could choose the
+  full plan but pay ₹1,180). It calls `distributorApi.approvePayment` /
+  `rejectPayment`. Razorpay/manual mode are gone — no Mark Paid / Cancel
+  actions (`MarkPaidModal` deleted). `PaymentSummaryCard` shows the plan and
+  a per-stage `base + GST` breakdown (booking ₹1,000 + ₹180, final ₹5,000 +
+  ₹900, or full ₹5,500 + ₹990) plus the total's split.
   `LeadInfoCards.tsx`'s `DistributorInfoCard` shows Aadhaar front/back
   thumbnails (read-only — admin views/previews only, never uploads/replaces)
   with a click-to-open lightbox (`ImagePreviewModal`, local to this file).
-  `LeadInfoCards.tsx` also exports `isRefundEligible`/`computeRefundAmount`
-  helpers and `StatusCard` (which — despite the name — is **not** rendered
-  by `leads/[id]/page.tsx`; only `LeadsTable.tsx`'s row uses the eligibility
-  helper today). The "Mark Refunded" button only exists in `LeadsTable.tsx`
+  `MarkRefundedModal.tsx` exports `isRefundEligible`/`computeRefundAmount`
+  (mirroring the backend: refund blocked while a payment is pending review,
+  except `lock_lost`, whose pending payment is included in the amount);
+  `LeadInfoCards.tsx` exports `StatusCard` (which — despite the name — is
+  **not** rendered by `leads/[id]/page.tsx`). The "Mark Refunded" button only exists in `LeadsTable.tsx`
   (list view) — there is no refund action on the lead detail page.
 - `MarkRefundedModal.tsx` has a **"Wallet refunded"** checkbox: unchecked
   (default) shows a UTR input validated against the same
@@ -45,12 +57,11 @@ calculator types, categories, users, and the distributor leads pipeline.
   same way the refund displays above do — `refund.utr` is `undefined` for
   a wallet refund, so this file previously showed a raw "UTR: undefined"
   before being fixed to show "Payment Info: ..." instead.
-- `src/lib/api.ts` (`distributorApi`, ~lines 159-198) — thin wrapper over
-  backend admin endpoints: `markPaid`, `approveUtr`/`rejectUtr`,
-  `approveFinalUtr`/`rejectFinalUtr` (the activation action),
-  `updateIdCreated`, `markRefunded` (payload:
+- `src/lib/api.ts` (`distributorApi`) — thin wrapper over backend admin
+  endpoints: `approvePayment`/`rejectPayment` (every stage — booking,
+  full, final), `updateIdCreated`, `markRefunded` (payload:
   `{ method: 'bank_transfer'|'wallet', utr, paymentInfo, remark }`),
-  `cancel`, `updateCallStatus`, `exportLeads`.
+  `updateCallStatus`, `exportLeads`.
 - Other dashboard sections (`blogs`, `calculators`, `calculator-types`,
   `categories`, `users`) are independent CRUD panels, unrelated to the
   distributor flow. **`blogs` is legacy** — blog content now lives in

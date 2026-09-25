@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { DistributorLead } from '@/types';
-import { MarkPaidModal } from './MarkPaidModal';
+import { DistributorLead, DistributorPaymentEntry } from '@/types';
 import { ApproveRejectUtrModal } from './ApproveRejectUtrModal';
 import Link from 'next/link';
 import { MarkRefundedModal, isRefundEligible, computeRefundAmount, type MarkRefundedPayload } from './MarkRefundedModal';
@@ -14,18 +13,12 @@ interface Props {
   sortOrder: 'asc' | 'desc';
   onSort: (field: string) => void;
   onUpdateCallStatus: (id: string, leadCallStatus: string) => void;
-  onMarkPaid: (id: string, data: { mode: string; reference: string; notes: string }) => void;
-  onCancelLead: (id: string) => void;
-  onApproveUtr: (id: string) => void;
-  onRejectUtr: (id: string, reason: string) => void;
-  onApproveFinalUtr: (id: string) => void;
-  onRejectFinalUtr: (id: string, reason: string) => void;
+  onApprovePayment: (id: string) => void;
+  onRejectPayment: (id: string, reason: string) => void;
   onToggleIdCreated: (id: string, idCreated: boolean, remark?: string) => void;
   onMarkRefunded: (id: string, data: MarkRefundedPayload) => void;
   isMarkRefundedLoading?: boolean;
-  isMarkPaidLoading?: boolean;
-  isApproveRejectLoading?: boolean;
-  isApproveRejectFinalLoading?: boolean;
+  isReviewLoading?: boolean;
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -46,6 +39,32 @@ const STATUS_STYLES: Record<string, string> = {
 const CALL_STATUS_OPTIONS = ['not_required', 'pending_call', 'called', 'converted'];
 
 const AMOUNT_VISIBLE_STATUSES = ['lock_acquired', 'order_created', 'paid', 'lock_lost', 'cancelled'];
+
+// Statuses in which an admin can approve/reject the pending payment — must
+// match approvePendingPayment's rules in cashlo-backend. (A lock_lost lead's
+// pending payment is refunded instead, via Mark Refunded.)
+const REVIEWABLE_STATUSES = ['lock_acquired', 'paid'];
+
+// The lead's single pending payment. Leads whose booking UTR was submitted
+// before the payments ledger only have it on qrPayment — the backend folds
+// that into a real entry on approve/reject, so show it the same way here.
+function pendingPayment(lead: DistributorLead): DistributorPaymentEntry | null {
+  const entry = lead.payments?.find((p) => p.status === 'pending');
+  if (entry) return entry;
+  if (lead.qrPayment?.reviewStatus === 'pending') {
+    return {
+      stage: 'booking',
+      method: 'qr_self',
+      amount: lead.gst?.totalAmount ?? 118000,
+      status: 'pending',
+      utr: lead.qrPayment.utr,
+      createdAt: lead.qrPayment.submittedAt,
+    };
+  }
+  return null;
+}
+
+const STAGE_SHORT: Record<string, string> = { booking: 'booking', full: 'full', final: 'final' };
 
 function SortableHeader({
   label,
@@ -159,22 +178,14 @@ export function LeadsTable({
   sortOrder,
   onSort,
   onUpdateCallStatus,
-  onMarkPaid,
-  onCancelLead,
-  onApproveUtr,
-  onRejectUtr,
-  onApproveFinalUtr,
-  onRejectFinalUtr,
+  onApprovePayment,
+  onRejectPayment,
   onToggleIdCreated,
   onMarkRefunded,
-  isMarkPaidLoading,
-  isApproveRejectLoading,
-  isApproveRejectFinalLoading,
+  isReviewLoading,
   isMarkRefundedLoading,
 }: Props) {
-  const [markPaidLeadId, setMarkPaidLeadId] = useState<string | null>(null);
-  const [reviewUtrLeadId, setReviewUtrLeadId] = useState<string | null>(null);
-  const [reviewFinalUtrLeadId, setReviewFinalUtrLeadId] = useState<string | null>(null);
+  const [reviewLeadId, setReviewLeadId] = useState<string | null>(null);
   const [idCreatedRemarkLeadId, setIdCreatedRemarkLeadId] = useState<string | null>(null);
   const [markRefundedLeadId, setMarkRefundedLeadId] = useState<string | null>(null);
 
@@ -193,14 +204,10 @@ export function LeadsTable({
     );
   }
 
-  const markPaidLead = leads.find((l) => l._id === markPaidLeadId) || null;
-  const reviewUtrLead = leads.find((l) => l._id === reviewUtrLeadId) || null;
-  const reviewFinalUtrLead = leads.find((l) => l._id === reviewFinalUtrLeadId) || null;
+  const reviewLead = leads.find((l) => l._id === reviewLeadId) || null;
+  const reviewEntry = reviewLead ? pendingPayment(reviewLead) : null;
   const idCreatedRemarkLead = leads.find((l) => l._id === idCreatedRemarkLeadId) || null;
   const markRefundedLead = leads.find((l) => l._id === markRefundedLeadId) || null;
-
-  const pendingFinalPayment = (lead: DistributorLead) =>
-    lead.payments?.find((p) => p.stage === 'final' && p.status === 'pending' && p.method === 'qr_self');
 
   return (
     <div className="rounded-lg border border-slate-200 overflow-hidden bg-white">
@@ -246,32 +253,26 @@ export function LeadsTable({
                   >
                     {lead.status.replace(/_/g, ' ')}
                   </span>
-                  {lead.paymentMethod === 'manual' && (
-                    <span className="ml-1.5 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500">
-                      manual
+                  {lead.plan === 'full' && (
+                    <span className="ml-1.5 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">
+                      full plan
                     </span>
                   )}
                   {lead.status === 'lock_lost' && lead.lostReason && (
                     <p className="text-xs text-orange-600 mt-1 max-w-[180px]">{lead.lostReason}</p>
                   )}
-                  {lead.status === 'paid' && lead.manualPayment?.reference && (
-                    <p className="text-xs text-slate-400 mt-1">Ref: {lead.manualPayment.reference}</p>
-                  )}
-                  {lead.status === 'paid' && pendingFinalPayment(lead) && (
-                    <p className="text-xs font-mono text-emerald-700 mt-1">
-                      Final UTR: {pendingFinalPayment(lead)?.utr}
-                    </p>
-                  )}
-                  {lead.paymentMethod === 'qr_self' && lead.qrPayment?.reviewStatus === 'pending' && (
+                  {pendingPayment(lead) && (
                     <p className="text-xs font-mono text-amber-700 mt-1">
-                      UTR: {lead.qrPayment.utr}
+                      {STAGE_SHORT[pendingPayment(lead)!.stage]} UTR: {pendingPayment(lead)!.utr}
                     </p>
                   )}
-                  {lead.paymentMethod === 'qr_self' && lead.qrPayment?.reviewStatus === 'rejected' && (
-                    <p className="text-xs text-red-600 mt-1 max-w-[180px]">
-                      Rejected: {lead.qrPayment.rejectionReason}
-                    </p>
-                  )}
+                  {lead.status === 'cancelled' && (() => {
+                    const rejected = [...(lead.payments || [])].reverse().find((p) => p.status === 'failed');
+                    const reason = rejected?.rejectionReason || lead.qrPayment?.rejectionReason;
+                    return reason ? (
+                      <p className="text-xs text-red-600 mt-1 max-w-[180px]">Rejected: {reason}</p>
+                    ) : null;
+                  })()}
                   {lead.status === 'refunded' && lead.refund && (
                     <p className="text-xs text-purple-600 mt-1">
                       Refunded ₹{(lead.refund.amount / 100).toLocaleString('en-IN')}
@@ -280,14 +281,14 @@ export function LeadsTable({
                 </td>
                 <td className="px-4 py-3 text-slate-700">
                   {(() => {
-                    const finalPending = pendingFinalPayment(lead);
-                    if (finalPending) {
+                    const pending = pendingPayment(lead);
+                    if (pending) {
                       return (
                         <div>
-                          <p className="font-medium text-emerald-700">
-                            ₹{(finalPending.amount / 100).toLocaleString('en-IN')}
+                          <p className="font-medium text-amber-700">
+                            ₹{(pending.amount / 100).toLocaleString('en-IN')}
                           </p>
-                          <p className="text-xs text-slate-400">final payment pending</p>
+                          <p className="text-xs text-slate-400">{STAGE_SHORT[pending.stage]} payment pending</p>
                         </div>
                       );
                     }
@@ -336,41 +337,15 @@ export function LeadsTable({
                   })}
                 </td>
                 <td className="px-4 py-3">
-                  {lead.paymentMethod === 'qr_self' && lead.qrPayment?.reviewStatus === 'pending' && (
+                  {REVIEWABLE_STATUSES.includes(lead.status) && pendingPayment(lead) && (
                     <button
-                      onClick={() => setReviewUtrLeadId(lead._id)}
+                      onClick={() => setReviewLeadId(lead._id)}
                       className="px-2.5 py-1 text-xs font-medium bg-amber-500 text-white rounded-lg hover:bg-amber-600 whitespace-nowrap"
                     >
-                      Review UTR
+                      Review {STAGE_SHORT[pendingPayment(lead)!.stage]} payment
                     </button>
                   )}
-                  {lead.status === 'paid' && pendingFinalPayment(lead) && (
-                    <button
-                      onClick={() => setReviewFinalUtrLeadId(lead._id)}
-                      className="px-2.5 py-1 text-xs font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 whitespace-nowrap"
-                    >
-                      Review Final Payment
-                    </button>
-                  )}
-                  {((lead.status === 'lock_acquired' && lead.paymentMethod === 'manual') || lead.status === 'lock_lost') && (
-                      <div className="flex flex-col gap-1.5">
-                        <button
-                          onClick={() => setMarkPaidLeadId(lead._id)}
-                          className="px-2.5 py-1 text-xs font-medium bg-[#445df0] text-white rounded-lg hover:bg-[#3548d4] whitespace-nowrap"
-                        >
-                          Mark Paid
-                        </button>
-                        {lead.status === 'lock_acquired' && (
-                          <button
-                            onClick={() => onCancelLead(lead._id)}
-                            className="px-2.5 py-1 text-xs font-medium border border-slate-300 text-slate-600 rounded-lg hover:bg-slate-50 whitespace-nowrap"
-                          >
-                            Cancel
-                          </button>
-                        )}
-                      </div>
-                    )}
-                    {isRefundEligible(lead) && (
+                  {isRefundEligible(lead) && (
                     <button
                       onClick={() => setMarkRefundedLeadId(lead._id)}
                       className="mt-1.5 px-2.5 py-1 text-xs font-medium bg-purple-600 text-white rounded-lg hover:bg-purple-700 whitespace-nowrap"
@@ -385,58 +360,28 @@ export function LeadsTable({
         </table>
       </div>
 
-      {markPaidLead && (
-        <MarkPaidModal
-          leadName={markPaidLead.name}
-          pincode={markPaidLead.pincode}
-          isSubmitting={!!isMarkPaidLoading}
-          onClose={() => setMarkPaidLeadId(null)}
-          onSubmit={(data) => {
-            onMarkPaid(markPaidLead._id, data);
-            setMarkPaidLeadId(null);
-          }}
-        />
-      )}
-
-{reviewUtrLead && (
+      {reviewLead && reviewEntry && (
         <ApproveRejectUtrModal
-          leadName={reviewUtrLead.name}
-          pincode={reviewUtrLead.pincode}
-          utr={reviewUtrLead.qrPayment?.utr || ''}
-          submittedAt={reviewUtrLead.qrPayment?.submittedAt}
-          isSubmitting={!!isApproveRejectLoading}
-          onClose={() => setReviewUtrLeadId(null)}
+          leadName={reviewLead.name}
+          pincode={reviewLead.pincode}
+          utr={reviewEntry.utr || ''}
+          stage={reviewEntry.stage}
+          amount={reviewEntry.amount}
+          submittedAt={reviewEntry.createdAt}
+          isSubmitting={!!isReviewLoading}
+          onClose={() => setReviewLeadId(null)}
           onApprove={() => {
-            onApproveUtr(reviewUtrLead._id);
-            setReviewUtrLeadId(null);
+            onApprovePayment(reviewLead._id);
+            setReviewLeadId(null);
           }}
           onReject={(reason) => {
-            onRejectUtr(reviewUtrLead._id, reason);
-            setReviewUtrLeadId(null);
+            onRejectPayment(reviewLead._id, reason);
+            setReviewLeadId(null);
           }}
         />
       )}
 
-      {reviewFinalUtrLead && (
-        <ApproveRejectUtrModal
-          leadName={reviewFinalUtrLead.name}
-          pincode={reviewFinalUtrLead.pincode}
-          utr={pendingFinalPayment(reviewFinalUtrLead)?.utr || ''}
-          submittedAt={pendingFinalPayment(reviewFinalUtrLead)?.createdAt}
-          isSubmitting={!!isApproveRejectFinalLoading}
-          onClose={() => setReviewFinalUtrLeadId(null)}
-          onApprove={() => {
-            onApproveFinalUtr(reviewFinalUtrLead._id);
-            setReviewFinalUtrLeadId(null);
-          }}
-          onReject={(reason) => {
-            onRejectFinalUtr(reviewFinalUtrLead._id, reason);
-            setReviewFinalUtrLeadId(null);
-          }}
-        />
-      )}
-
-{idCreatedRemarkLead && (
+      {idCreatedRemarkLead && (
         <IdCreatedConfirmModal
           leadName={idCreatedRemarkLead.name}
           pincode={idCreatedRemarkLead.pincode}

@@ -1,11 +1,20 @@
 'use client';
 
 import { useState } from 'react';
+import type { PaymentStage } from '@/types';
+
+const STAGE_LABELS: Record<PaymentStage, string> = {
+  booking: 'Booking payment',
+  full: 'Full payment',
+  final: 'Final payment',
+};
 
 interface Props {
   leadName: string;
   pincode: string;
   utr: string;
+  stage: PaymentStage;
+  amount: number; // paise — what the customer should have paid for this stage
   submittedAt?: string;
   onClose: () => void;
   onApprove: () => void;
@@ -17,6 +26,8 @@ export function ApproveRejectUtrModal({
   leadName,
   pincode,
   utr,
+  stage,
+  amount,
   submittedAt,
   onClose,
   onApprove,
@@ -36,7 +47,14 @@ export function ApproveRejectUtrModal({
           {leadName} — PIN Code {pincode}
         </p>
 
-        <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
+        <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3">
+          <p className="text-xs font-medium text-amber-800">{STAGE_LABELS[stage]} — expected amount</p>
+          <p className="mt-0.5 text-xl font-semibold text-slate-900">
+            ₹{(amount / 100).toLocaleString('en-IN')}
+          </p>
+        </div>
+
+        <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
           <p className="text-xs font-medium text-slate-500">Submitted UTR</p>
           <p className="mt-0.5 font-mono text-sm text-slate-900">{utr}</p>
           {submittedAt && (
@@ -47,7 +65,9 @@ export function ApproveRejectUtrModal({
         </div>
 
         <p className="mt-3 text-xs text-slate-500">
-          Cross-check this UTR against your bank/UPI merchant statement before approving.
+          Cross-check this UTR <strong>and the amount</strong> against your bank/UPI merchant
+          statement before approving. Approving a {stage === 'booking' ? 'booking' : stage}{' '}
+          payment {stage === 'booking' ? 'confirms the PIN code' : 'activates the distributor'}.
         </p>
 
         {mode === 'reject' && (
@@ -87,7 +107,11 @@ export function ApproveRejectUtrModal({
                 disabled={isSubmitting}
                 className="px-4 py-2 text-sm bg-[#445df0] text-white rounded-lg hover:bg-[#3548d4] disabled:opacity-50"
               >
-                {isSubmitting ? 'Approving...' : 'Approve & Confirm PIN Code'}
+                {isSubmitting
+                  ? 'Approving...'
+                  : stage === 'booking'
+                    ? 'Approve & Confirm PIN Code'
+                    : 'Approve & Activate'}
               </button>
             </>
           ) : (

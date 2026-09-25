@@ -135,16 +135,20 @@ export function MarkRefundedModal({ leadName, pincode, refundAmount, onClose, on
   );
 }
 
-// Helper used by both LeadsTable and the lead detail page to keep the
-// refund-eligibility rule in exactly one place.
+// Helpers used by LeadsTable to keep the refund rules in exactly one place.
+// Mirror markRefunded in cashlo-backend's distributorAdmin.controller.js.
 export function isRefundEligible(lead: DistributorLead): boolean {
   if (lead.idCreated) return false;
-  if (lead.status === 'refunded') return false;
-  return ['paid', 'activated', 'lock_lost'].includes(lead.status);
+  if (!['paid', 'activated', 'lock_lost'].includes(lead.status)) return false;
+  // A payment awaiting review must be approved/rejected first — except on a
+  // lock_lost lead, where the pending payment is the money being refunded.
+  const hasPending = (lead.payments || []).some((p) => p.status === 'pending');
+  return lead.status === 'lock_lost' || !hasPending;
 }
 
 export function computeRefundAmount(lead: DistributorLead): number {
+  const counted = lead.status === 'lock_lost' ? ['success', 'pending'] : ['success'];
   return (lead.payments || [])
-    .filter((p) => p.status === 'success')
+    .filter((p) => counted.includes(p.status))
     .reduce((sum, p) => sum + p.amount, 0);
 }
